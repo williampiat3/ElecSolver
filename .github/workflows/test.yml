@@ -17,7 +17,7 @@ jobs:
     - name: Set up Miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
-        activate-environment: test-env
+        activate-environment: ElecSolver
         environment-file: env.yml
         python-version: 3.12  # or whatever version you need
         auto-activate-base: false
