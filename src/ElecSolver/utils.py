@@ -1,0 +1,122 @@
+import sparse
+import numpy as np
+import sympy
+
+def parallel_sum(*impedences):
+    """Function to compute the graph of impedences resulting from // graphs
+    works for any number of impedence graphs
+
+    Returns
+    -------
+    sparse.COO tensor
+        resulting impedence
+    """
+    coords_tot = np.concatenate([impedence.coords for impedence in impedences],axis=1)
+    data_tot = np.concatenate([impedence.data for impedence in impedences])
+    current_indexes = np.arange(0,data_tot.shape[0],dtype=int)
+
+    uniques,indexes,inverse,counts = np.unique(coords_tot,return_index=True,return_inverse=True,return_counts=True,axis=1)
+    new_coords = uniques
+    new_data = data_tot[indexes].astype(complex)
+
+    remaining_coords = coords_tot.copy()
+    remaining_data = data_tot.copy()
+    reverse_counts = counts[inverse]
+    reverse_counts_ref = reverse_counts.copy()
+
+    reverse_counts[indexes]=0
+    reverse_indexes = indexes[inverse]
+
+
+    while np.max(reverse_counts)>1:
+        mask = (reverse_counts>1)
+        remaining_coords = remaining_coords[:,mask]
+
+        remaining_data = remaining_data[mask]
+        current_indexes=current_indexes[mask]
+
+        uniques,indexes,inverse,counts = np.unique(remaining_coords,return_index=True,return_inverse=True,return_counts=True,axis=1)
+        new_data[reverse_indexes[current_indexes[indexes]]] = new_data[reverse_indexes[current_indexes[indexes]]]*remaining_data[indexes]/(new_data[reverse_indexes[current_indexes[indexes]]]+ remaining_data[indexes])
+        reverse_counts = counts[inverse]
+        reverse_counts[indexes]=0
+
+    indexed_data = np.zeros(impedences[0].shape[0]**2,dtype=complex)
+    indexed_data[new_coords[0]*impedences[0].shape[0]+new_coords[1]]=new_data
+    return sparse.COO(new_coords,new_data,shape=np.max(new_coords,axis=1)+1)
+
+
+def serie_sum(*impedences):
+    """Function to compute the impedences that go serial
+
+    Returns
+    -------
+    sparse.COO tensor
+    resulting impedence
+
+    """
+    return sum(impedences)
+
+
+def cast_complex_system_in_real_system(sys,b):
+    """Function to cast an n dimensional complex system into an
+    equivalent 2n dimension real system
+    the solution of the real system is the concatenation of the real and
+    imaginary part:
+    sol_comp = sol_real[:n]+1.0j*sol_real[n:]
+
+    Parameters
+    ----------
+    sys : sparse.COO
+        system with complex data
+    b : np.array
+        second member with real or complex values
+
+    Returns
+    -------
+    tuple(Sparse.COO,np.array)
+        real system equivalent to complex system
+    """
+    coords = sys.coords
+    data = np.array(sys.data,dtype=complex)
+    b= b.astype(complex)
+    new_coords = np.concatenate((coords,coords+[[0],[sys.shape[0]]],coords+[[sys.shape[0]],[0]],coords+[[sys.shape[0]],[sys.shape[0]]]),axis=1)
+    new_data = np.concatenate((data.real,-data.imag,data.imag,data.real),axis=0)
+    sys_comp = sparse.COO(new_coords,new_data,shape=(sys.shape[0]*2,sys.shape[0]*2))
+    new_b = np.concatenate((b.real,b.imag),axis=0)
+    return sys_comp,new_b
+
+
+
+## Made by ChatGPT
+def lcm_of_polynomials(expr_list, *gens):
+    """
+    Computes the LCM of a list of SymPy polynomial expressions.
+
+    Parameters:
+    - expr_list: list of sympy expressions
+    - gens: optional generators (variables), e.g., x, y
+
+    Returns:
+    - sympy expression: LCM of the input polynomials
+    """
+    if not expr_list:
+        return 1
+
+    # Convert expressions to polynomials with given generators (if any)
+    polys = [sympy.Poly(expr, *gens) if gens else sympy.Poly(expr) for expr in expr_list]
+
+    # Compute LCM of polynomials
+    result = polys[0]
+    for poly in polys[1:]:
+        result = sympy.Poly(sympy.lcm(result, poly))
+
+    return result.as_expr()
+
+def get_numerator_and_denominator(expr):
+    n,d = sympy.fraction(sympy.expand(sympy.simplify(expr)))
+    return n,d
+
+
+def extract_degree_fraction(expr,symbol):
+    n,d = get_numerator_and_denominator(expr)
+    return sympy.degree(n,gen=symbol) - sympy.degree(d,gen=symbol)
