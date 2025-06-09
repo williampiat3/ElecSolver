@@ -18,8 +18,7 @@ jobs:
         with:
           activate-environment: ElecSolver
           environment-file: env.yml
-          python-version: 3.5
-          condarc-file: etc/example-condarc.yml
+          python-version: 3.12
           auto-activate-base: false
       - run: |
           conda info
