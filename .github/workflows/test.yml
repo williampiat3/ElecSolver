@@ -23,6 +23,7 @@ jobs:
         activate-environment: ElecSolver
         environment-file: env.yml
         auto-activate-base: false
+        conda-remove-defaults: "true"
 
     - name: Verify environment
       run: |
