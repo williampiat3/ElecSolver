@@ -29,8 +29,10 @@ jobs:
       run: |
         conda info
         conda list
-
+    - name: Set PythonPath
+      run: |
+        echo "PYTHONPATH=src/ElecSolver" >> $GITHUB_ENV
     - name: Run tests
       run: |
         # replace this with your actual test command, e.g., pytest, unittest, etc.
-        pytest
+        pytest tests
