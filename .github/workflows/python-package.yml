@@ -1,25 +1,33 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
-name: Python package
+name: Test Python Program
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
 jobs:
-  example-2-linux:
-    name: Ex2 Linux
-    runs-on: "ubuntu-latest"
+  test:
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: ElecSolver
-          environment-file: env.yml
-          python-version: 3.12
-          auto-activate-base: false
-      - run: |
-          conda info
-          conda list
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: test-env
+        environment-file: env.yml
+        python-version: 3.12  # or whatever version you need
+        auto-activate-base: false
+
+    - name: Verify environment
+      run: |
+        conda info
+        conda list
+
+    - name: Run tests
+      run: |
+        # replace this with your actual test command, e.g., pytest, unittest, etc.
+        pytest
