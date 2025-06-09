@@ -19,7 +19,6 @@ jobs:
       with:
         activate-environment: ElecSolver
         environment-file: env.yml
-        python-version: 3.12  # or whatever version you need
         auto-activate-base: false
 
     - name: Verify environment
