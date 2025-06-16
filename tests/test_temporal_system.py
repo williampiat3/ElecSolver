@@ -1,0 +1,65 @@
+import numpy as np
+from scipy.sparse.linalg import spsolve
+from scipy.sparse import coo_matrix
+from TemporalSystemBuilder import TemporalElectricSystemBuilder
+import sparse
+
+
+
+def test_temporal():
+    ## Simple tetrahedron
+    res_coords  = np.array([[0,0,0,2],[1,2,3,3]],dtype=int)
+    res_data = np.array([1,2.118,2.118,1],dtype=float)
+
+    coil_coords  = np.array([[1],[2]],dtype=int)
+    coil_data = np.array([1],dtype=float)
+
+    capa_coords = np.array([[1],[3]],dtype=int)
+    capa_data = np.array([1],dtype=float)
+
+    ## total impedance
+    mutuals_coords=np.array([[],[]],dtype=int)
+    mutuals_data = np.array([],dtype=float)
+
+
+    res_mutuals_coords=np.array([[],[]],dtype=int)
+    res_mutuals_data = np.array([],dtype=float)
+
+    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.set_mass(0)
+    elec_sys.build_system()
+    elec_sys.build_second_member_intensity(10,1,0)
+    S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
+    rhs = elec_sys.rhs
+    S1 = coo_matrix(S1,shape=(10,10))
+    S2 = coo_matrix(S2,shape=(10,10))
+
+
+    S_i = coo_matrix(S_i)
+    b = np.zeros(S_i.shape[0])
+    b[rhs[1][0]]=rhs[0]
+
+    sol = spsolve(S_i,b)
+    dt=0.05
+    vals = []
+    vals_capa = []
+    for i in range(300):
+        currents_coil,currents_res,currents_capa,voltages = elec_sys.build_intensity_and_voltage_from_vector(sol)
+        # print("_______________________")
+        # print(currents_coil)
+        # print(currents_res)
+        # print(currents_capa)
+        # print(voltages)
+        vals.append(currents_coil[0])
+        vals_capa.append(currents_capa[0])
+        sol = spsolve(S2+dt*S1,b*dt+S2@sol)
+    # import matplotlib.pyplot as plt
+    # plt.xlabel("Time")
+    # plt.ylabel("Intensity")
+    # plt.plot(vals,label="intensity coil")
+    # plt.plot(vals_capa,label="intensity capa")
+    # plt.legend()
+    # plt.savefig("test")
+
+if __name__ == "__main__":
+    test_temporal()
