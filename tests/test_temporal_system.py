@@ -9,7 +9,7 @@ import sparse
 def test_temporal():
     ## Simple tetrahedron
     res_coords  = np.array([[0,0,0,2],[1,2,3,3]],dtype=int)
-    res_data = np.array([1,2.118,2.118,1],dtype=float)
+    res_data = np.array([1,(1+np.sqrt(5))/2,(1+np.sqrt(5))/2,1],dtype=float)
 
     coil_coords  = np.array([[1],[2]],dtype=int)
     coil_data = np.array([1],dtype=float)
@@ -40,10 +40,11 @@ def test_temporal():
     b[rhs[1][0]]=rhs[0]
 
     sol = spsolve(S_i,b)
-    dt=0.05
+    print(elec_sys.build_intensity_and_voltage_from_vector(sol))
+    dt=0.08
     vals = []
     vals_capa = []
-    for i in range(300):
+    for i in range(500):
         currents_coil,currents_res,currents_capa,voltages = elec_sys.build_intensity_and_voltage_from_vector(sol)
         # print("_______________________")
         # print(currents_coil)
@@ -53,6 +54,11 @@ def test_temporal():
         vals.append(currents_coil[0])
         vals_capa.append(currents_capa[0])
         sol = spsolve(S2+dt*S1,b*dt+S2@sol)
+        if i ==299:
+            print(elec_sys.build_intensity_and_voltage_from_vector(sol))
+
+
+
     # import matplotlib.pyplot as plt
     # plt.xlabel("Time")
     # plt.ylabel("Intensity")
