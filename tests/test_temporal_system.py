@@ -100,7 +100,6 @@ def test_temporal2():
     b = np.zeros(S_i.shape[0])
     b[rhs[1][0]]=rhs[0]
     print((S1+1j*S2).todense())
-    exit()
     sol = spsolve(S_i,b)
     print(elec_sys.build_intensity_and_voltage_from_vector(sol))
     dt=0.08
