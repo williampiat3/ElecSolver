@@ -167,9 +167,9 @@ class TemporalElectricSystemBuilder():
 
         mask_res_mutual = ~np.isin(i_s_additionnal_S1,i_s_additionnal_S2)
 
-        i_s_init = np.concatenate((i_s_nodes_S1,i_s_edges_coil_S2,i_s_edges_res_S1,i_s_edges_capa_S2,i_s_additionnal_S1[mask_res_mutual],i_s_additionnal_S2,i_s_mass_S1),axis=0)
-        j_s_init = np.concatenate((j_s_nodes_S1,j_s_edges_coil_S2,j_s_edges_res_S1,j_s_edges_capa_S2,j_s_additionnal_S1[mask_res_mutual],j_s_additionnal_S2,j_s_mass_S1),axis=0)
-        data_init = np.concatenate((data_nodes_S1,data_edges_coil_S2,data_edges_res_S1,data_edges_capa_S2,data_additionnal_S1[mask_res_mutual],data_additionnal_S2,data_mass_S1),axis=0)
+        i_s_init = np.concatenate((i_s_nodes_S1,i_s_edges_coil_S2,i_s_edges_res_S1,i_s_edges_capa_S2,i_s_mass_S1),axis=0)
+        j_s_init = np.concatenate((j_s_nodes_S1,j_s_edges_coil_S2,j_s_edges_res_S1,j_s_edges_capa_S2,j_s_mass_S1),axis=0)
+        data_init = np.concatenate((data_nodes_S1,data_edges_coil_S2,data_edges_res_S1,data_edges_capa_S2,data_mass_S1),axis=0)
 
         self.S_init=(data_init,(i_s_init,j_s_init))
 
@@ -229,7 +229,7 @@ class TemporalElectricSystemBuilder():
     #     tension : complex
     #         enforced tension
     #     input_node : int
-    #         node where the tension is enforce
+    #         node where the tension is enforced
     #     output_node : int
     #         node from where the tension is enforced
 
@@ -250,36 +250,70 @@ class TemporalElectricSystemBuilder():
     #         if not valid:
     #             raise IndexError("Nodes indicated do not belong to the same subsystem")
     #     print("Warning this function changes the system, please re-evaluate it before solving the system (call get_system)")
-    #     (data,(i_s,j_s)) = self.system
+    #     (data_init,(i_s_init,j_s_init)) = self.S_init
+    #     (data_S1,(i_s_S1,j_s_S1)) = self.S1
+    #     (data_S2,(i_s_S2,j_s_S2)) = self.S2
     #     (data_rhs,(nodes,)) = self.rhs
     #     # removing one kirchoff
-    #     mask = (np.isin(self.impedence_coords[0],self.list_of_subgraphs[targeted_subsystem]))
+    #     mask = (np.isin(self.res_coords[0],self.list_of_subgraphs[targeted_subsystem]))
 
-    #     index =np.arange(self.number_intensities)[mask][self.enforced_potentials[targeted_subsystem]]
-    #     equation_to_remove= self.offset_i + index
+    #     index =np.arange(self.res_data.shape[0])[mask][self.enforced_potentials[targeted_subsystem]]
+    #     equation_to_remove= self.offset_i+ self.coil_data.shape[0] + index
 
-    #     mask_data_to_remove=(i_s==equation_to_remove)
+    #     mask_data_to_remove=(i_s_init==equation_to_remove)
+    #     data_init = data_init[~mask_data_to_remove]
+    #     i_s_init = i_s_init[~mask_data_to_remove]
+    #     j_s_init = j_s_init[~mask_data_to_remove]
 
-    #     data = data[~mask_data_to_remove]
-    #     i_s = i_s[~mask_data_to_remove]
-    #     j_s = j_s[~mask_data_to_remove]
+    #     mask_data_to_remove=(i_s_S1==equation_to_remove)
+    #     data_S1 = data_S1[~mask_data_to_remove]
+    #     i_s_S1 = i_s_S1[~mask_data_to_remove]
+    #     j_s_S1 = j_s_S1[~mask_data_to_remove]
+
+    #     mask_data_to_remove=(i_s_S2==equation_to_remove)
+    #     data_S2 = data_S2[~mask_data_to_remove]
+    #     i_s_S2 = i_s_S2[~mask_data_to_remove]
+    #     j_s_S2 = j_s_S2[~mask_data_to_remove]
+
+
     #     ## Adding the new equation
-    #     data = np.append(data,np.array([1.,-1.]),axis=0)
-    #     i_s = np.append(i_s,np.array([equation_to_remove,equation_to_remove]),axis=0)
-    #     j_s = np.append(j_s,np.array([self.offset_j + input_node,self.offset_j+output_node]),axis=0)
+    #     data_init = np.append(data_init,np.array([1.,-1.]),axis=0)
+    #     i_s_init = np.append(i_s_init,np.array([equation_to_remove,equation_to_remove]),axis=0)
+    #     j_s_init = np.append(j_s_init,np.array([self.offset_j + input_node,self.offset_j+output_node]),axis=0)
+
+    #     data_S1 = np.append(data_S1,np.array([1.,-1.]),axis=0)
+    #     i_s_S1 = np.append(i_s_S1,np.array([equation_to_remove,equation_to_remove]),axis=0)
+    #     j_s_S1 = np.append(j_s_S1,np.array([self.offset_j + input_node,self.offset_j+output_node]),axis=0)
 
     #     ## second member value
     #     nodes= np.append(nodes, [equation_to_remove],axis=0)
     #     data_rhs= np.append(data_rhs, [tension],axis=0)
 
 
-    #      ## reaffecting the systems and second member
-    #     self.system = (data,(i_s,j_s))
+    #     ## reaffecting the systems and second member
+    #     self.S_init = (data_init,(i_s_init,j_s_init))
+    #     self.S1 = (data_S1,(i_s_S1,j_s_S1))
+    #     self.S2 = (data_S2,(i_s_S2,j_s_S2))
     #     self.rhs = (data_rhs,(nodes,))
 
     #     ## counter for tension assignment
     #     self.enforced_potentials[targeted_subsystem] +=1
     #     return self.rhs
+
+    def get_init_system(self):
+        sys = coo_matrix(self.S_init,shape=(self.number_intensities+self.size,self.number_intensities+self.size))
+        rhs = np.zeros(self.number_intensities+self.size)
+        (data_rhs,(nodes,)) = self.rhs
+        rhs[nodes]=data_rhs
+        return sys,rhs
+
+    def get_system(self):
+        sys1 = coo_matrix(self.S1,shape=(self.number_intensities+self.size,self.number_intensities+self.size))
+        sys2 = coo_matrix(self.S2,shape=(self.number_intensities+self.size,self.number_intensities+self.size))
+        rhs = np.zeros(self.number_intensities+self.size)
+        (data_rhs,(nodes,)) = self.rhs
+        rhs[nodes]=data_rhs
+        return sys1,sys2,rhs
 
     def build_intensity_and_voltage_from_vector(self,sol):
         sign = np.sign(self.all_coords[1]-self.all_coords[0])

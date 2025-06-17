@@ -67,5 +67,59 @@ def test_temporal():
     # plt.legend()
     # plt.savefig("test")
 
+def test_temporal2():
+    ## Simple tetrahedron
+    res_coords  = np.array([[0,0,0,2],[1,2,3,3]],dtype=int)
+    res_data = np.array([1,2,2,1],dtype=float)
+
+    coil_coords  = np.array([[1,1],[2,3]],dtype=int)
+    coil_data = np.array([1,1],dtype=float)
+
+    capa_coords = np.array([[],[]],dtype=int)
+    capa_data = np.array([],dtype=float)
+
+    ## total impedance
+    mutuals_coords=np.array([[0],[1]],dtype=int)
+    mutuals_data = np.array([0.2],dtype=float)
+
+
+    res_mutuals_coords=np.array([[0],[1]],dtype=int)
+    res_mutuals_data = np.array([0.3],dtype=float)
+
+    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.set_mass(0)
+    elec_sys.build_system()
+    elec_sys.build_second_member_intensity(10,1,0)
+    S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
+    rhs = elec_sys.rhs
+    S1 = coo_matrix(S1,shape=(10,10))
+    S2 = coo_matrix(S2,shape=(10,10))
+
+    S_i = coo_matrix(S_i)
+
+    b = np.zeros(S_i.shape[0])
+    b[rhs[1][0]]=rhs[0]
+    print((S1+1j*S2).todense())
+    exit()
+    sol = spsolve(S_i,b)
+    print(elec_sys.build_intensity_and_voltage_from_vector(sol))
+    dt=0.08
+    vals = []
+    vals_capa = []
+    for i in range(50):
+        currents_coil,currents_res,currents_capa,voltages = elec_sys.build_intensity_and_voltage_from_vector(sol)
+        vals.append(currents_coil[0]*2)
+        vals_capa.append(np.abs(currents_res[0]))
+        sol = spsolve(S2+dt*S1,b*dt+S2@sol)
+    # import matplotlib.pyplot as plt
+    # plt.xlabel("Time")
+    # plt.ylabel("Intensity")
+    # plt.plot(vals,label="intensity coil")
+    # plt.plot(vals_capa,label="intensity res")
+    # plt.legend()
+    # plt.savefig("test")
+
+
 if __name__ == "__main__":
     test_temporal()
+    test_temporal2()
