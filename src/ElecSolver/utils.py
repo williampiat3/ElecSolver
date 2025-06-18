@@ -124,6 +124,32 @@ def extract_degree_fraction(expr,symbol):
 
 
 def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
+    """Function to build the temporal system for nb_timesteps
+    The solution of this system is the concatenation of the all the timsteps
+    except for the initial timestep that the user is free to concatenate with the solutions
+    Tip: reshaping the solution of the systme with shape (nb_timesteps,sol.shape[0]) provides
+    the solution array indexed by the timestep
+
+    Parameters
+    ----------
+    S1 : coo_matrix
+        real part of the temporal system
+    S2 : coo_matrix
+        derivative part of the temporal system
+    dt : float
+        timestep for the simulation
+    rhs : np.array
+        second member of the system
+    sol : initial condition
+        solution of initial condition system
+    nb_timesteps : int
+        number of timesteps
+
+    Returns
+    -------
+    S : coo_matrix
+        system left hand side for the temporal
+    """
     A = block_diag([S2+dt*S1]*nb_timesteps)
     B = block_diag([-S2]*(nb_timesteps-1))
     B = coo_matrix((B.data,(B.row+S1.shape[0],B.col)),shape=A.shape)
