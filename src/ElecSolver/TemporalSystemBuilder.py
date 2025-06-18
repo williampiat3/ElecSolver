@@ -332,9 +332,18 @@ class TemporalElectricSystemBuilder():
         offset_coil = self.coil_data.shape[0]
         offset_res = self.res_data.shape[0]
         offset_capa = self.capa_data.shape[0]
-        return (sol[:offset_coil]*sign[:offset_coil],
-               sol[offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
-               sol[offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
-               sol[self.number_intensities:-self.source_count],
-               sol[-self.source_count:]*self.source_signs
-        )
+        if self.source_count!=0:
+            return (sol[:offset_coil]*sign[:offset_coil],
+                sol[offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
+                sol[offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                sol[self.number_intensities:-self.source_count],
+                sol[-self.source_count:]*self.source_signs
+            )
+        else:
+            return (sol[:offset_coil]*sign[:offset_coil],
+                sol[offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
+                sol[offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                sol[self.number_intensities:-self.source_count],
+                np.array([],dtype=float)
+            )
+
