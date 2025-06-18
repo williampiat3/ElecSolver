@@ -1,6 +1,7 @@
 import sparse
 import numpy as np
 import sympy
+from scipy.sparse import block_diag,coo_matrix
 
 def parallel_sum(*impedences):
     """Function to compute the graph of impedences resulting from // graphs
@@ -120,3 +121,12 @@ def get_numerator_and_denominator(expr):
 def extract_degree_fraction(expr,symbol):
     n,d = get_numerator_and_denominator(expr)
     return sympy.degree(n,gen=symbol) - sympy.degree(d,gen=symbol)
+
+
+def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
+    A = block_diag([S2+dt*S1]*nb_timesteps)
+    B = block_diag([-S2]*(nb_timesteps-1))
+    B = coo_matrix((B.data,(B.row+S1.shape[0],B.col)),shape=A.shape)
+    S = A+B
+    RHS = np.concatenate([rhs*dt+S2@sol]+[rhs*dt]*(nb_timesteps-1),axis=0)
+    return S,RHS
