@@ -112,8 +112,6 @@ def test_res_grid():
 
 
 
-
-
 if __name__ == "__main__":
     test_res_grid()
     test_sys_general_coo_build()

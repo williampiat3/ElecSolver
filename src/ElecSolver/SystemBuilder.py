@@ -8,7 +8,7 @@ class ElectricSystemBuilder():
     def __init__(self,impedence_coords,impedence_data,mutuals_coords,mutuals_data):
         """ElectricSystemBuilder class for building an electrical sparse system
         that can be solved by any sparse solver
-        Currently only supporting frequency studies
+        it supports all forms of complex making this class fit for non linear impedences
 
         Parameters
         ----------
@@ -40,7 +40,9 @@ class ElectricSystemBuilder():
         self.number_of_subsystems = len(self.list_of_subgraphs)
         self.affected_potentials = [-1]*self.number_of_subsystems
         self.deleted_equation_current = [subsystem[0] for subsystem in self.list_of_subgraphs]
-        self.enforced_potentials = [0]*self.number_of_subsystems
+        ## number of tension sources
+        self.source_count = 0
+        self.source_signs = np.array([],dtype=int)
         self.rhs = (np.array([]),(np.array([],dtype=int),))
         rescaler = np.zeros(self.size)
         rescaler[self.deleted_equation_current]=1
@@ -214,33 +216,35 @@ class ElectricSystemBuilder():
         print("Warning this function changes the system, please re-evaluate it before solving the system (call get_system)")
         (data,(i_s,j_s)) = self.system
         (data_rhs,(nodes,)) = self.rhs
-        # removing one kirchoff
-        mask = (np.isin(self.impedence_coords[0],self.list_of_subgraphs[targeted_subsystem]))
 
-        index =np.arange(self.number_intensities)[mask][self.enforced_potentials[targeted_subsystem]]
-        equation_to_remove= self.offset_i + index
+        new_eq = self.number_intensities+self.size +self.source_count
+        sign = np.sign(output_node-input_node)
 
-        mask_data_to_remove=(i_s==equation_to_remove)
-
-        data = data[~mask_data_to_remove]
-        i_s = i_s[~mask_data_to_remove]
-        j_s = j_s[~mask_data_to_remove]
-        ## Adding the new equation
-        data = np.append(data,np.array([1.,-1.]),axis=0)
-        i_s = np.append(i_s,np.array([equation_to_remove,equation_to_remove]),axis=0)
-        j_s = np.append(j_s,np.array([self.offset_j + input_node,self.offset_j+output_node]),axis=0)
+        ## Adding the new equation in S1
+        if input_node in self.deleted_equation_current:
+            data = np.append(data,np.array([1.,-1.,-sign]),axis=0)
+            i_s = np.append(i_s,np.array([new_eq,new_eq,output_node+self.rescaler[output_node]]),axis=0)
+            j_s = np.append(j_s,np.array([self.offset_j + input_node,self.offset_j+output_node,new_eq]),axis=0)
+        elif output_node in self.deleted_equation_current:
+            data = np.append(data,np.array([1.,-1.,sign]),axis=0)
+            i_s = np.append(i_s,np.array([new_eq,new_eq,input_node+self.rescaler[input_node]]),axis=0)
+            j_s = np.append(j_s,np.array([self.offset_j + input_node,self.offset_j+output_node,new_eq]),axis=0)
+        else:
+            data = np.append(data,np.array([1.,-1.,sign,-sign]),axis=0)
+            i_s = np.append(i_s,np.array([new_eq,new_eq,input_node+self.rescaler[input_node],output_node+self.rescaler[output_node]]),axis=0)
+            j_s = np.append(j_s,np.array([self.offset_j + input_node,self.offset_j+output_node,new_eq,new_eq]),axis=0)
 
         ## second member value
-        nodes= np.append(nodes, [equation_to_remove],axis=0)
+        nodes= np.append(nodes, [new_eq],axis=0)
         data_rhs= np.append(data_rhs, [tension],axis=0)
-
 
          ## reaffecting the systems and second member
         self.system = (data,(i_s,j_s))
         self.rhs = (data_rhs,(nodes,))
 
-        ## counter for tension assignment
-        self.enforced_potentials[targeted_subsystem] +=1
+        ## counter for tension source
+        self.source_count +=1
+        self.source_signs=np.append(self.source_signs,[sign])
         return self.rhs
 
     def build_intensity_and_voltage_from_vector(self,sol):
