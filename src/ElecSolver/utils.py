@@ -61,8 +61,8 @@ def serie_sum(*impedences):
 def cast_complex_system_in_real_system(sys,b):
     """Function to cast an n dimensional complex system into an
     equivalent 2n dimension real system
-    the solution of the real system is the concatenation of the real and
-    imaginary part:
+    the solution of the initial system is the concatenation of the real and
+    imaginary part of the solution of this system:
     sol_comp = sol_real[:n]+1.0j*sol_real[n:]
 
     Parameters
@@ -122,6 +122,30 @@ def extract_degree_fraction(expr,symbol):
     n,d = get_numerator_and_denominator(expr)
     return sympy.degree(n,gen=symbol) - sympy.degree(d,gen=symbol)
 
+def constant_block_diag(A,repetitions):
+    """Function to repeat the matrix A multiple times along the diagonal
+    This is a faster version of block_diag in the case of having always the same block
+
+    Parameters
+    ----------
+    A : scpiy.sparse.coo_matrix
+        block to repeat multiple times on the diagonal
+    repetitions : int
+        number of repetitions to perform
+
+    Returns
+    -------
+    coo_matrix
+        block diagonal sparse matrix
+    """
+    size = A.shape[0]
+    indexes = A.data.shape[0]
+    rows = np.tile(A.row,(repetitions,))+size*np.repeat(np.arange(0,repetitions,dtype=int),indexes)
+    cols = np.tile(A.col,(repetitions,))+size*np.repeat(np.arange(0,repetitions,dtype=int),indexes)
+    data = np.tile(A.data,(repetitions,))
+    return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
+
+
 
 def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
     """Function to build the temporal system for nb_timesteps
@@ -150,9 +174,11 @@ def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
     S : coo_matrix
         system left hand side for the temporal
     """
-    A = block_diag([S2+dt*S1]*nb_timesteps)
-    B = block_diag([-S2]*(nb_timesteps-1))
+    A = constant_block_diag((S2+dt*S1).tocoo(),nb_timesteps)
+    B = constant_block_diag(-S2,nb_timesteps-1)
     B = coo_matrix((B.data,(B.row+S1.shape[0],B.col)),shape=A.shape)
     S = A+B
     RHS = np.concatenate([rhs*dt+S2@sol]+[rhs*dt]*(nb_timesteps-1),axis=0)
     return S,RHS
+
+
