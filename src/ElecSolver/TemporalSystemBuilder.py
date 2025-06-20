@@ -359,7 +359,7 @@ class TemporalElectricSystemBuilder():
         sys = coo_matrix(self.S_init,shape=(self.number_intensities+self.size+self.source_count,self.number_intensities+self.size+self.source_count))
         rhs = np.zeros(self.number_intensities+self.size+self.source_count)
         (data_rhs,(nodes,)) = self.rhs
-        rhs[nodes]=data_rhs
+        np.add.at(rhs, nodes, data_rhs)
         return sys,rhs
 
     def get_system(self):
@@ -377,7 +377,7 @@ class TemporalElectricSystemBuilder():
         sys2 = coo_matrix(self.S2,shape=(self.number_intensities+self.size+self.source_count,self.number_intensities+self.size+self.source_count))
         rhs = np.zeros(self.number_intensities+self.size+self.source_count)
         (data_rhs,(nodes,)) = self.rhs
-        rhs[nodes]=data_rhs
+        np.add.at(rhs, nodes, data_rhs)
         return sys1,sys2,rhs
 
     def get_frequency_system(self,omega):
