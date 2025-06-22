@@ -200,12 +200,104 @@ def test_tension():
     sol = spsolve(S_i.tocsr(),b)
 
 
+def test_big_grid():
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    import matplotlib
+    size=31
+    G = nx.grid_2d_graph(size, size)
+    pos = {(x,y):(y,-x) for x,y in G.nodes()}
+    center = size**2//2
+
+
+    adjacency = nx.adjacency_matrix(G).tocoo()
+    mask = adjacency.row>adjacency.col
+    impedence_coords = np.array([adjacency.row,adjacency.col],dtype=int)[:,mask]
+    impedence_data = adjacency.data[mask]
+    mask_coil = (np.abs(impedence_coords[0]-impedence_coords[1])==size)*((impedence_coords[0]%size!=(size-1)//2)*(impedence_coords[1]%size!=(size-1)//2))
+    mask_res = ~mask_coil
+    coords_coil = impedence_coords[:,mask_coil]
+    data_coil = impedence_data[mask_coil]
+    coords_res = impedence_coords[:,mask_res]
+    data_res = impedence_data[mask_res]
+
+    coords_capa = np.array([[],[]],dtype=int)
+    data_capa = np.array([],dtype=float)
+
+    mutual_coords = [[],[]]
+    mutual_data = []
+
+
+
+
+    electric_sys = TemporalElectricSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)
+    electric_sys.set_mass(0)
+
+    electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=center)
+    electric_sys.build_second_member_intensity(intensity=2,input_node=size-1,output_node=center)
+    electric_sys.build_second_member_intensity(intensity=2,input_node=size**2-1,output_node=center)
+    electric_sys.build_second_member_intensity(intensity=2,input_node=size**2-size,output_node=center)
+
+    ## building system
+    electric_sys.build_system()
+    S_i,b = electric_sys.get_init_system()
+    sol = spsolve(S_i.tocsr(),b)
+    S1,S2,rhs = electric_sys.get_system()
+
+    dt=0.08
+    A = (S2+dt*S1).tocoo()
+    B = rhs*dt
+
+    ctx = DMumpsContext()
+    if ctx.myid == 0:
+        ctx.set_centralized_sparse(A)
+        #x = RHS.copy()
+        #ctx.set_rhs(x) # Modified in place
+    ctx.run(job=1) # Analysis
+
+    for i in range(20):
+        if ctx.myid == 0:
+            ctx.set_centralized_assembled_values(A.data)
+        ctx.run(job=2) # Factorization
+
+        if ctx.myid == 0:
+            b = B+S2@sol
+            sol = b.copy()
+            ctx.set_rhs(sol)
+        ctx.run(job=3) # Solve
+
+        # currents_coil,currents_res,currents_capa,voltages,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
+        #sol = spsolve(A,B+S2@sol)
+
+    currents_coil,currents_res,currents_capa,voltages,_  = electric_sys.build_intensity_and_voltage_from_vector(sol)
+    intensities_sparse = coo_matrix((np.concatenate([currents_coil,currents_res],axis=0),(np.concatenate([coords_coil[0],coords_res[0]],axis=0),np.concatenate([coords_coil[1],coords_res[1]],axis=0))),shape=(size**2,size**2))
+    intensities_sparse = intensities_sparse - intensities_sparse.T
+    # print(intensities_sparse.todense())
+    graph =  nx.from_scipy_sparse_array(intensities_sparse)
+    # Layout
+    weights = [np.abs(graph[u][v]['weight']**(1/5)) for u, v in graph.edges()]
+    # Normalize weights for colormap
+    norm = matplotlib.colors.Normalize(vmin=min(weights), vmax=max(weights))
+    cmap = matplotlib.cm.viridis  # You can also try plasma, inferno, coolwarm, etc.
+    edge_colors = [cmap(norm(w)) for w in weights]
+
+    pos = {n:(y,-x) for (x,y),n in zip(G.nodes(),graph.nodes)}
+    # Plot the graph
+    plt.figure(figsize=(8, 6))
+    nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, width=np.array(weights)*4)
+    plt.title(f"Input node 0,{size-1},{size**2-size},{size**2-1} Output node {center}")
+    plt.axis('off')
+    plt.savefig("resistance_grid.png")
+    plt.show()
+
+
 
 
 
 
 
 if __name__ == "__main__":
+    test_big_grid()
     test_one_shot_temporal()
     test_tension()
     test_temporal()
