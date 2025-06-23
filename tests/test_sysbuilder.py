@@ -2,7 +2,6 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from SystemBuilder import ElectricSystemBuilder
-import sparse
 
 
 def test_sys_general_coo_build():

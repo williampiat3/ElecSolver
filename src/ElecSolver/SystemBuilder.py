@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-import sparse
 from scipy.sparse import coo_matrix
 
 
@@ -133,8 +132,10 @@ class ElectricSystemBuilder():
         """Function to get the system
         Returns
         -------
-        sparse.COO matrix of the system
-        sparse.COO vector of the second member
+        sys: scipy.coo_matrix
+            Linear system to solve
+        rhs: np.ndarray
+            Second member of the system
         """
         (data_rhs,(nodes,)) = self.rhs
         (data,(i_s,j_s)) = self.system

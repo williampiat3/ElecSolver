@@ -1,7 +1,6 @@
-import sparse
 import numpy as np
 import sympy
-from scipy.sparse import block_diag,coo_matrix
+from scipy.sparse import coo_matrix
 
 def parallel_sum(*impedences):
     """Function to compute the graph of impedences resulting from // graphs
@@ -9,7 +8,7 @@ def parallel_sum(*impedences):
 
     Returns
     -------
-    sparse.COO tensor
+    scipy.sparse.coo_matrix
         resulting impedence
     """
     coords_tot = np.concatenate([impedence.coords for impedence in impedences],axis=1)
@@ -43,7 +42,7 @@ def parallel_sum(*impedences):
 
     indexed_data = np.zeros(impedences[0].shape[0]**2,dtype=complex)
     indexed_data[new_coords[0]*impedences[0].shape[0]+new_coords[1]]=new_data
-    return sparse.COO(new_coords,new_data,shape=np.max(new_coords,axis=1)+1)
+    return coo_matrix((new_data,(new_coords[0],new_coords[1])))
 
 
 def serie_sum(*impedences):
@@ -51,11 +50,11 @@ def serie_sum(*impedences):
 
     Returns
     -------
-    sparse.COO tensor
-    resulting impedence
+    scipy.sparse.coo_matrix
+        resulting impedence
 
     """
-    return sum(impedences)
+    return sum(impedences).tocoo()
 
 
 def cast_complex_system_in_real_system(sys,b):
@@ -67,22 +66,24 @@ def cast_complex_system_in_real_system(sys,b):
 
     Parameters
     ----------
-    sys : sparse.COO
+    sys : scipy.sparse.coo_matric
         system with complex data
     b : np.array
         second member with real or complex values
 
     Returns
     -------
-    tuple(Sparse.COO,np.array)
+    sys_comp
         real system equivalent to complex system
+    new_b
+        real second member equivalent to complex system
     """
-    coords = sys.coords
+    coords = np.stack((sys.row,sys.col),axis=1)
     data = np.array(sys.data,dtype=complex)
     b= b.astype(complex)
     new_coords = np.concatenate((coords,coords+[[0],[sys.shape[0]]],coords+[[sys.shape[0]],[0]],coords+[[sys.shape[0]],[sys.shape[0]]]),axis=1)
     new_data = np.concatenate((data.real,-data.imag,data.imag,data.real),axis=0)
-    sys_comp = sparse.COO(new_coords,new_data,shape=(sys.shape[0]*2,sys.shape[0]*2))
+    sys_comp = coo_matrix((new_data,(new_coords[0],new_coords[1])))
     new_b = np.concatenate((b.real,b.imag),axis=0)
     return sys_comp,new_b
 
