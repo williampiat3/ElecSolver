@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-import sparse
 from scipy.sparse import coo_matrix, block_diag
 
 
