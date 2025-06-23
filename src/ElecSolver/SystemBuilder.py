@@ -138,9 +138,10 @@ class ElectricSystemBuilder():
         """
         (data_rhs,(nodes,)) = self.rhs
         (data,(i_s,j_s)) = self.system
-        b = sparse.COO([nodes],data_rhs,shape=(max(j_s)+1,))
-        evaluated_sys = sparse.COO([i_s, j_s],data,shape=(max(i_s)+1,max(j_s)+1))
-        return evaluated_sys,b
+        sys = coo_matrix(self.system)
+        rhs = np.zeros(self.number_intensities+self.size+self.source_count)
+        np.add.at(rhs, nodes, data_rhs)
+        return sys,rhs
 
     def build_second_member_intensity(self,intensity,input_node,output_node):
         """Function to build a second member for the scenario of current injection in the sparse system

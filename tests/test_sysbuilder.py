@@ -24,8 +24,8 @@ def test_sys_general_coo_build():
     ## Need to evaluate the system because it was altered when calling the second member
     sys,b = electric_sys.get_system()
     print(sys.todense())
-    print(b.todense())
-    sol = spsolve(sys.to_scipy_sparse().tocsr(),b.todense())
+    print(b)
+    sol = spsolve(sys.tocsr(),b)
     intensities,potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
     print(intensities)
     print(potentials)
@@ -50,8 +50,8 @@ def test_sys_general_mutual_intensity():
     ## Need to evaluate the system because it was altered when calling the second member
     sys,b = electric_sys.get_system()
     print(sys.todense())
-    print(b.todense())
-    sol = spsolve(sys.to_scipy_sparse().tocsr(),b.todense())
+    print(b)
+    sol = spsolve(sys.tocsr(),b)
     intensities,potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
     print(intensities)
     print(potentials)
@@ -84,7 +84,7 @@ def test_res_grid():
     ## building system
     electric_sys.build_system()
     sys,b = electric_sys.get_system()
-    sol = spsolve(sys.to_scipy_sparse().tocsr(),b.todense())
+    sol = spsolve(sys.tocsr(),b)
     intensities,voltages = electric_sys.build_intensity_and_voltage_from_vector(sol)
     intensities_sparse = coo_matrix((intensities,(impedence_coords[0],impedence_coords[1])),shape=(49,49))
     intensities_sparse = intensities_sparse - intensities_sparse.T
