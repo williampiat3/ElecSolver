@@ -245,7 +245,8 @@ def test_big_grid():
     S1,S2,rhs = electric_sys.get_system()
 
     dt=0.08
-    A = (S2+dt*S1).tocoo()
+    ## Using Crank Nicolson integration scheme
+    A = (S2+dt/2*S1).tocoo()
     B = rhs*dt
 
     ctx = DMumpsContext()
@@ -255,13 +256,13 @@ def test_big_grid():
         #ctx.set_rhs(x) # Modified in place
     ctx.run(job=1) # Analysis
 
-    for i in range(20):
+    for i in range(50):
         if ctx.myid == 0:
             ctx.set_centralized_assembled_values(A.data)
         ctx.run(job=2) # Factorization
 
         if ctx.myid == 0:
-            b = B+S2@sol
+            b = B+S2@sol - dt/2*S1@sol
             sol = b.copy()
             ctx.set_rhs(sol)
         ctx.run(job=3) # Solve
@@ -298,7 +299,7 @@ def test_big_grid():
 
 if __name__ == "__main__":
     test_big_grid()
-    test_one_shot_temporal()
-    test_tension()
-    test_temporal()
-    test_temporal2()
+    # test_one_shot_temporal()
+    # test_tension()
+    # test_temporal()
+    # test_temporal2()
