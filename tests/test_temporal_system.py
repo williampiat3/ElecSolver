@@ -299,7 +299,7 @@ def test_big_grid():
 
 if __name__ == "__main__":
     test_big_grid()
-    # test_one_shot_temporal()
-    # test_tension()
-    # test_temporal()
-    # test_temporal2()
+    test_one_shot_temporal()
+    test_tension()
+    test_temporal()
+    test_temporal2()
