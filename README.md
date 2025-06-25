@@ -1,53 +1,62 @@
 # ElectricSystemSolver
-## Introduction
-This repository provides a way to formalize Electric Systems as a linear problem, either for temporal studies or frequency studies.
-This repository is not meant to be a general library for solving electric system, we limited our efforts to the construction of the linear system and let the user choose the solver for getting the solution. The aim is to be the bridge between the formalization of the electric system in terms of connectivity and the actual linear system to be solved
+
+## Overview
+
+**ElectricSystemSolver** formalizes electric systems as linear problems, suitable for both **temporal** and **frequency-domain** studies.
+It focuses on constructing the linear system representation, leaving the actual numerical solution to the user.
+
+This repository is **not** a general-purpose electrical system solver. Instead, it acts as a **bridge** between:
+
+- The graph-based description of an electric network
+- The corresponding sparse linear system to solve
 
 ## Table of content
 
 - [ElectricSystemSolver](#electricsystemsolver)
-  - [Introduction](#introduction)
+  - [Overview](#overview)
   - [Table of content](#table-of-content)
-  - [FrequencySystemBuilder](#frequencysystembuilder)
+  - [Components](#components)
+    - [FrequencySystemBuilder](#frequencysystembuilder)
+      - [Features](#features)
+      - [Example](#example)
+      - [Adding a Parallel Resistance](#adding-a-parallel-resistance)
     - [TemporalSystemBuilder](#temporalsystembuilder)
+      - [Supported Elements](#supported-elements)
+      - [Example](#example-1)
   - [Solver suggestions](#solver-suggestions)
 
+## Components
 
-This repository has two components:
+### FrequencySystemBuilder
 
-1. FrequencySystemBuilder: A class for making frequency studies of linear electric systems. It takes as an input a graph of impedance in the form of a complex COO sparse matrix and another complex COO matrix for mutuals (i.e. remote interactions between impedances)
-2. TemporalSystemBuilder: A class for making temporal evolutions of electric systems. It takes as an input lists and coordinates of coils, resistances and capacities along with a list of inductive and resistive mutuals.
+This class handles **frequency-domain** analysis of linear electric systems.
 
-The implementation is pure python but fully vectorized using numpy, as far as or testing goes, building a system with 3 million nodes took 10 seconds (most of the overhead taken by networkx analyzing the graph connectivity)
+#### Features
 
-## FrequencySystemBuilder
-
-The frequency system builder supports
-
-* Tension and intensity sources
-* Inductive and resistive mutual
-* Auto detection and coupling of multiple subsystems
-* Any complex impedence
-* Any complex mutual
-
+- Supports tension and intensity sources
+- Models inductive and resistive mutuals
+- Detects and couples multiple subsystems
+- Accepts arbitrary complex impedances and mutuals
+- Constructs sparse linear systems (COO format)
 
 
 > [!TIP]
-> Not all solvers support solving complex linear system, we therefore added utility function `cast_complex_system_in_real_system` in the `utils.py`  that casts the `n` dimensional linear system into a `2n` dimensional real linear system.
+> Some solvers do not support complex-valued systems. Use the utility function `cast_complex_system_in_real_system` in `utils.py` to convert an `n`-dimensional complex system into a `2n`-dimensional real system.
 
-Exemple:
+#### Example
 
 We would like to study the following system:
 ![Multiple system](img/schema.png)
 
-this can simply be defined in the following manner (We took R=1, L=1 and M=2)
+this can simply be defined in the following manner (We took R=1, L=1 and M=2):
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from FrequencySystemBuilder import FrequencySystemBuilder
 
 
-# Sparse Python impedence matrix (notice coil impedence between points 0 and 2, and coil impedence between 3 and 4 )
+# Complex and sparse impedance matrix
+# notice coil impedence between points 0 and 2, and coil impedence between 3 and 4
 impedence_coords = np.array([[0,0,1,3],[1,2,2,4]], dtype=int)
 impedence_data = np.array([1, 1j, 1, 1j], dtype=complex)
 
@@ -65,26 +74,26 @@ electric_sys = FrequencySystemBuilder(
 )
 
 # Set node masses
+# 2 values because 2 subsystems
 electric_sys.set_mass(0, 3)
+# Building system
 electric_sys.build_system()
 electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
 
-# Solve the system
+# Get and solve the system
 sys, b = electric_sys.get_system()
-## plotting the linear system
-print(sys.todense())
-print(b)
-
 sol = spsolve(sys.tocsr(), b)
 intensities, potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
 ## We see a tension appearing on the lonely coil (between node 3 and 4)
 print(potentials[3]-potentials[4])
 ```
-
-If you want to add dipoles in parallel, simply add them to the list of impedence, for instance if you want to add a resistance in parallel with the inductance to make the following scheme:
+#### Adding a Parallel Resistance
+We want to add components in parallel with existing components for instance inserting a resistor in parallel with the first inductance (between nodes 0 and 2)
 ![Parallel system](img/schema3.png)
-Simply change the very first lines of the script:
+
+In python, simply add the resistance to the list of impedence in the very first lines of the script:
+
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -104,23 +113,23 @@ mutuals_data = np.array([2.j], dtype=complex)
 
 ### TemporalSystemBuilder
 
-This class is meant for systems with a limited amount of features supported components
+This class models **time-dependent** systems using resistors, capacitors, coils, and mutuals.
 
-* Tension and intensity sources
-* Inductive and resistive mutual
-* Auto detection and coupling of multiple subsystems
-* Resitances
-* Capacities
-* Coils
-* Inductive mutuals
-* Resistive mutuals
+#### Supported Elements
 
-Exemple:
+- Tension and intensity sources
+- Resistors, capacitors, inductors
+- Inductive and resistive mutuals
+- Auto-detection of coupled subsystems
+
+#### Example
+
 
 We would like to study the following system:
 ![Temporal system](img/schema2.png)
 
 with R=1, L=0.1, C=2 this gives:
+
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -177,12 +186,15 @@ plt.legend()
 plt.savefig("intensities_res.png")
 ```
 
-This gives the following graph that displays the intensity passing through the resistances
+This outputs the following graph that displays the intensity passing through the resistances
 ![Temporal system](img/intensities_res.png)
 
 
 ## Solver suggestions
 
-For simple systems and use cases we advise using the sparse solver from scipy as presented in the exemples
+- For **small or moderately sized systems**, the built-in `scipy.sparse.linalg.spsolve` is effective.
+- For **large-scale temporal problems**, consider using **MUMPS** (via `pyMUMPS`).
+  MUMPS is more efficient when only the second member (`b`) changes during time-stepping.
 
-However, for temporal resolutions we advise switching to MUMPS by using pyMUMPS as presented in the test function `tests.test_temporal_system.test_big_grid()`: MUMPS can alleviate the fact that only the second member changes through the temporal resolution making iterations fast and scalable after the analysis is performed once.
+See example in the tests:
+`tests.test_temporal_system`
