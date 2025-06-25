@@ -15,6 +15,7 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - [ElectricSystemSolver](#electricsystemsolver)
   - [Overview](#overview)
   - [Table of content](#table-of-content)
+  - [How to install](#how-to-install)
   - [Components](#components)
     - [FrequencySystemBuilder](#frequencysystembuilder)
       - [Features](#features)
@@ -24,6 +25,31 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
       - [Supported Elements](#supported-elements)
       - [Example](#example-1)
   - [Solver suggestions](#solver-suggestions)
+
+## How to install
+For now this package is not distributed the only way to install it is by:
+
+1. Cloning this repo:
+
+```
+git clone https://github.com/williampiat3/ElectricSystemSolver.git
+```
+
+2. Creating a conda environement using the `env.yml` file:
+
+```
+conda create -n ElecSolver -f ElectricSystemSolver/env.yml
+```
+
+> [!WARNING]
+> pyMumps is not supported on Windows (But it is on WSL!!): If you want to execute this code on Windows, remove pyMumps from the `env.yml` file and use other solvers instead
+
+3. Exporting the `PYTHONPATH` variable to import the system builders more smoothly
+
+```
+export PYTHONPATH='path/to/ElectricSystemSolver/src/ElecSolver'
+```
+
 
 ## Components
 
