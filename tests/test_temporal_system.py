@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
-from TemporalSystemBuilder import TemporalElectricSystemBuilder
+from TemporalSystemBuilder import TemporalSystemBuilder
 from utils import build_big_temporal_system
 from mumps import DMumpsContext
 
@@ -26,7 +26,7 @@ def test_temporal():
     res_mutuals_coords=np.array([[],[]],dtype=int)
     res_mutuals_data = np.array([],dtype=float)
 
-    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
     elec_sys.set_mass(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
@@ -60,13 +60,13 @@ def test_temporal():
 
 
 
-    # import matplotlib.pyplot as plt
-    # plt.xlabel("Time")
-    # plt.ylabel("Intensity")
-    # plt.plot(vals,label="intensity coil")
-    # plt.plot(vals_capa,label="intensity capa")
-    # plt.legend()
-    # plt.savefig("test")
+    import matplotlib.pyplot as plt
+    plt.xlabel("Time")
+    plt.ylabel("Intensity")
+    plt.plot(vals,label="intensity coil")
+    plt.plot(vals_capa,label="intensity capa")
+    plt.legend()
+    plt.savefig("test")
 
 def test_temporal2():
     ## Simple tetrahedron
@@ -87,7 +87,7 @@ def test_temporal2():
     res_mutuals_coords=np.array([[],[]],dtype=int)
     res_mutuals_data = np.array([],dtype=float)
 
-    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
     elec_sys.set_mass(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
@@ -111,13 +111,13 @@ def test_temporal2():
         vals.append(currents_res[1])
         vals_capa.append(currents_res[0])
         sol = spsolve(S2+dt*S1,b*dt+S2@sol)
-    # import matplotlib.pyplot as plt
-    # plt.xlabel("Time")
-    # plt.ylabel("Intensity")
-    # plt.plot(vals,label="intensity res 1")
-    # plt.plot(vals_capa,label="intensity res 2")
-    # plt.legend()
-    # plt.savefig("test")
+    import matplotlib.pyplot as plt
+    plt.xlabel("Time")
+    plt.ylabel("Intensity")
+    plt.plot(vals,label="intensity res 1")
+    plt.plot(vals_capa,label="intensity res 2")
+    plt.legend()
+    plt.savefig("test")
 
 
 def test_one_shot_temporal():
@@ -139,7 +139,7 @@ def test_one_shot_temporal():
     res_mutuals_coords=np.array([[],[]],dtype=int)
     res_mutuals_data = np.array([],dtype=float)
 
-    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
     elec_sys.set_mass(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
@@ -192,7 +192,7 @@ def test_tension():
     res_mutuals_coords=np.array([[],[]],dtype=int)
     res_mutuals_data = np.array([],dtype=float)
 
-    elec_sys = TemporalElectricSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
     elec_sys.set_mass(0)
     elec_sys.build_system()
     elec_sys.build_second_member_tension(10,1,0)
@@ -230,7 +230,7 @@ def test_big_grid():
 
 
 
-    electric_sys = TemporalElectricSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)
+    electric_sys = TemporalSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)
     electric_sys.set_mass(0)
 
     electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=center)

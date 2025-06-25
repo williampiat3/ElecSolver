@@ -3,9 +3,9 @@ import networkx as nx
 from scipy.sparse import coo_matrix
 
 
-class ElectricSystemBuilder():
+class FrequencySystemBuilder():
     def __init__(self,impedence_coords,impedence_data,mutuals_coords,mutuals_data):
-        """ElectricSystemBuilder class for building an electrical sparse system
+        """FrequencySystemBuilder class for building an electrical sparse system
         that can be solved by any sparse solver
         it supports all forms of complex making this class fit for non linear impedences
 

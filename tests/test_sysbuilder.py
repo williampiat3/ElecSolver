@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
-from SystemBuilder import ElectricSystemBuilder
+from FrequencySystemBuilder import FrequencySystemBuilder
 
 
 def test_sys_general_coo_build():
@@ -15,7 +15,7 @@ def test_sys_general_coo_build():
     mutuals_data = np.array([2.j],dtype=complex)
 
 
-    electric_sys = ElectricSystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
     # setting the mass
     electric_sys.set_mass(0)
     electric_sys.build_system()
@@ -31,7 +31,6 @@ def test_sys_general_coo_build():
 
 
 def test_sys_general_mutual_intensity():
-    jw = 5j
     ## sparse python res matrix
     impedence_coords = np.array([[0,0,1,3],[1,2,2,4]],dtype=int)
     impedence_data = np.array([1,1j,1,1j],dtype=complex)
@@ -41,19 +40,19 @@ def test_sys_general_mutual_intensity():
     mutuals_data = np.array([2.j],dtype=complex)
 
 
-    electric_sys = ElectricSystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
     # setting the mass
     electric_sys.set_mass(0,3)
+    # Build system and second member
     electric_sys.build_system()
     electric_sys.build_second_member_intensity(intensity=10,input_node=1,output_node=0)
-    ## Need to evaluate the system because it was altered when calling the second member
+
     sys,b = electric_sys.get_system()
-    print(sys.todense())
-    print(b)
     sol = spsolve(sys.tocsr(),b)
     intensities,potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
-    print(intensities)
-    print(potentials)
+
+    ## We see a tension appearing on the lonely coil
+    print(potentials[3]-potentials[4])
 
 
 
@@ -73,7 +72,7 @@ def test_res_grid():
 
 
 
-    electric_sys = ElectricSystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutuals_coords=mutual_coords,mutuals_data=mutual_data)
+    electric_sys = FrequencySystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutuals_coords=mutual_coords,mutuals_data=mutual_data)
     electric_sys.set_mass(0)
     electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=24)
     electric_sys.build_second_member_intensity(intensity=2,input_node=42,output_node=24)
@@ -112,6 +111,6 @@ def test_res_grid():
 
 
 if __name__ == "__main__":
-    test_res_grid()
-    test_sys_general_coo_build()
+    # test_res_grid()
+    # test_sys_general_coo_build()
     test_sys_general_mutual_intensity()

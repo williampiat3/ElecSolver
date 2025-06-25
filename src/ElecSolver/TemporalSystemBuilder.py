@@ -3,7 +3,7 @@ import networkx as nx
 from scipy.sparse import coo_matrix, block_diag
 
 
-class TemporalElectricSystemBuilder():
+class TemporalSystemBuilder():
     def __init__(self,coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,inductive_mutuals_coords,inductive_mutuals_data,res_mutual_coords,res_mutual_data):
         """Class for building the linear system to solve for both temporal and frequency studies
 
