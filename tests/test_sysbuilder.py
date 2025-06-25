@@ -25,7 +25,7 @@ def test_sys_general_coo_build():
     print(sys.todense())
     print(b)
     sol = spsolve(sys.tocsr(),b)
-    intensities,potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
+    intensities,potentials,current_source = electric_sys.build_intensity_and_voltage_from_vector(sol)
     print(intensities)
     print(potentials)
 
@@ -49,7 +49,7 @@ def test_sys_general_mutual_intensity():
 
     sys,b = electric_sys.get_system()
     sol = spsolve(sys.tocsr(),b)
-    intensities,potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
+    intensities,potentials,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
     ## We see a tension appearing on the lonely coil
     print(potentials[3]-potentials[4])
@@ -83,7 +83,7 @@ def test_res_grid():
     electric_sys.build_system()
     sys,b = electric_sys.get_system()
     sol = spsolve(sys.tocsr(),b)
-    intensities,voltages = electric_sys.build_intensity_and_voltage_from_vector(sol)
+    intensities,voltages,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
     intensities_sparse = coo_matrix((intensities,(impedence_coords[0],impedence_coords[1])),shape=(49,49))
     intensities_sparse = intensities_sparse - intensities_sparse.T
     graph =  nx.from_scipy_sparse_array(intensities_sparse)
@@ -137,7 +137,7 @@ def test_parallel_res():
     print(b)
 
     sol = spsolve(sys.tocsr(), b)
-    intensities, potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
+    intensities, potentials,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
     ## We see a tension appearing on the lonely coil (between node 3 and 4)
     print(potentials[3]-potentials[4])

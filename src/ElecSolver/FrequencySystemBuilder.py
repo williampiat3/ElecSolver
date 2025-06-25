@@ -251,4 +251,14 @@ class FrequencySystemBuilder():
 
     def build_intensity_and_voltage_from_vector(self,sol):
         sign = np.sign(self.impedence_coords[1]-self.impedence_coords[0])
-        return sol[:self.number_intensities]*sign,sol[self.number_intensities:]
+        if self.source_count!=0:
+            return (sol[:self.number_intensities]*sign,
+                    sol[self.number_intensities:-self.source_count],
+                    sol[...,-self.source_count:]*self.source_signs
+                    )
+
+        else:
+            return (sol[:self.number_intensities]*sign,
+                    sol[self.number_intensities:],
+                    np.array([],dtype=float)
+                    )
