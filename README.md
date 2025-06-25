@@ -26,7 +26,7 @@ The frequency system builder supports
 Exemple:
 
 We would like to study the following system:
-![Multiple system](img/shema.png)
+![Multiple system](img/schema.png)
 
 this can simply be defined in the following manner (We took R=1, L=1 and M=2)
 ```python
@@ -82,7 +82,7 @@ This class is meant for systems with a limited amount of features supported comp
 Exemple:
 
 We would like to study the following system:
-![Temporal system](img/shema2.png)
+![Temporal system](img/schema2.png)
 
 with R=1, L=0.1, C=2 this gives:
 ```python
