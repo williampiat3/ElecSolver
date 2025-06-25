@@ -38,7 +38,7 @@ git clone https://github.com/williampiat3/ElectricSystemSolver.git
 2. Creating a conda environement using the `env.yml` file:
 
 ```
-conda create -n ElecSolver -f ElectricSystemSolver/env.yml
+conda env create -n ElecSolver -f ElectricSystemSolver/env.yml
 ```
 
 > [!WARNING]
