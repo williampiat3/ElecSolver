@@ -166,7 +166,6 @@ S_i,b = elec_sys.get_init_system()
 sol = spsolve(S_i.tocsr(),b)
 # get system (S1 is real part, S2 derivative part)
 S1,S2,rhs = elec_sys.get_system()
-sol = spsolve(S_i,b)
 
 ## Solving using euler implicit scheme
 dt=0.08
