@@ -90,10 +90,10 @@ with R=1, L=0.1, C=2 this gives:
 res_coords  = np.array([[0,2],[1,3]],dtype=int)
 res_data = np.array([1,1],dtype=float)
 ## Defining coils
-coil_coords  = np.array([[1,0],[2,3]],dtype=int)
+coil_coords  = np.array([[1,0],[3,2]],dtype=int)
 coil_data = np.array([0.1,0.1],dtype=float)
 ## Defining capacities
-capa_coords = np.array([[1,2],[3,0]],dtype=int)
+capa_coords = np.array([[1,3],[2,0]],dtype=int)
 capa_data = np.array([2,2],dtype=float)
 
 ## Defining empty mutuals here
