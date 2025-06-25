@@ -107,10 +107,46 @@ def test_res_grid():
     plt.savefig("resistance_grid.png")
     plt.show()
 
+def test_parallel_res():
+    # Sparse Python impedence matrix (notice coil impedence between points 0 and 2, and coil impedence between 3 and 4 )
+    impedence_coords = np.array([[0,0,0,1,3],[1,2,2,2,4]], dtype=int)
+    impedence_data = np.array([1, 1j,1, 1, 1j], dtype=complex)
+
+    # Mutual inductance or coupling
+    # The indexes here are the impedence indexes in impedence_data
+    # The coupling is inductive
+    mutuals_coords = np.array([[1],[4]], dtype=int)
+    mutuals_data = np.array([2.j], dtype=complex)
+
+    electric_sys = FrequencySystemBuilder(
+        impedence_coords,
+        impedence_data,
+        mutuals_coords,
+        mutuals_data
+    )
+
+    # Set node masses
+    electric_sys.set_mass(0, 3)
+    electric_sys.build_system()
+    electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
+
+    # Solve the system
+    sys, b = electric_sys.get_system()
+    ## plotting the linear system
+    print(sys.todense())
+    print(b)
+
+    sol = spsolve(sys.tocsr(), b)
+    intensities, potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
+
+    ## We see a tension appearing on the lonely coil (between node 3 and 4)
+    print(potentials[3]-potentials[4])
+
 
 
 
 if __name__ == "__main__":
-    # test_res_grid()
-    # test_sys_general_coo_build()
+    test_parallel_res()
+    test_res_grid()
+    test_sys_general_coo_build()
     test_sys_general_mutual_intensity()

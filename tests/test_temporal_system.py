@@ -77,7 +77,7 @@ def test_temporal2():
     coil_data = np.array([0.1,0.1],dtype=float)
 
     capa_coords = np.array([[1,2],[3,0]],dtype=int)
-    capa_data = np.array([1,1],dtype=float)
+    capa_data = np.array([2,2],dtype=float)
 
     ## total impedance
     mutuals_coords=np.array([[],[]],dtype=int)
