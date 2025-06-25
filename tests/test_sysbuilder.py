@@ -109,7 +109,7 @@ def test_res_grid():
 
 def test_parallel_res():
     # Sparse Python impedence matrix (notice coil impedence between points 0 and 2, and coil impedence between 3 and 4 )
-    impedence_coords = np.array([[0,0,0,1,3],[1,2,2,2,4]], dtype=int)
+    impedence_coords = np.array([[0,0,3,1,3],[1,2,4,2,4]], dtype=int)
     impedence_data = np.array([1, 1j,1, 1, 1j], dtype=complex)
 
     # Mutual inductance or coupling
@@ -141,6 +141,7 @@ def test_parallel_res():
 
     ## We see a tension appearing on the lonely coil (between node 3 and 4)
     print(potentials[3]-potentials[4])
+    assert intensities[2]== -intensities[4]
 
 
 
