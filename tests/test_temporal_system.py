@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from ElecSolver import TemporalSystemBuilder
-from utils import build_big_temporal_system
+from ElecSolver.utils import build_big_temporal_system
 from mumps import DMumpsContext
 
 
