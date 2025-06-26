@@ -255,12 +255,8 @@ def test_big_grid():
         #x = RHS.copy()
         #ctx.set_rhs(x) # Modified in place
     ctx.run(job=1) # Analysis
-
+    ctx.run(job=2) # Factorization
     for i in range(50):
-        if ctx.myid == 0:
-            ctx.set_centralized_assembled_values(A.data)
-        ctx.run(job=2) # Factorization
-
         if ctx.myid == 0:
             b = B+S2@sol - dt/2*S1@sol
             sol = b.copy()
