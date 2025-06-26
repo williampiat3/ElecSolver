@@ -1,5 +1,5 @@
 from scipy.sparse import coo_matrix
-from utils import *
+from ElecSolver.utils import *
 
 
 def test_block_diag():
