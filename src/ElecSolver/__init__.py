@@ -1,2 +1,2 @@
-from FrequencySystemBuilder import FrequencySystemBuilder
-from TemporalSystemBuilder import TemporalSystemBuilder
+from .FrequencySystemBuilder import FrequencySystemBuilder
+from .TemporalSystemBuilder import TemporalSystemBuilder
