@@ -10,6 +10,13 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
+Its main goal is to provide a Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in scalability—handling millions of nodes and components, assuming sufficient computational resources.
+
+
+> [!NOTE]
+> Non-linear components are not supported. You must manage event detection and system updates yourself.
+
+
 ## Table of content
 
 - [ElectricSystemSolver](#electricsystemsolver)
@@ -47,7 +54,7 @@ conda env create -n ElecSolver -f ElectricSystemSolver/env.yml
 3. Exporting the `PYTHONPATH` variable to import the system builders more smoothly
 
 ```
-export PYTHONPATH='path/to/ElectricSystemSolver/src/ElecSolver'
+export PYTHONPATH='path/to/ElectricSystemSolver/src'
 ```
 
 
@@ -78,7 +85,7 @@ this can simply be defined in the following manner (We took R=1, L=1 and M=2):
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
-from FrequencySystemBuilder import FrequencySystemBuilder
+from ElecSolver import FrequencySystemBuilder
 
 
 # Complex and sparse impedance matrix
@@ -123,7 +130,7 @@ In python, simply add the resistance to the list of impedence in the very first 
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
-from FrequencySystemBuilder import FrequencySystemBuilder
+from ElecSolver import FrequencySystemBuilder
 
 
 # We add an additionnal resistance between 0 and 2
@@ -159,7 +166,7 @@ with R=1, L=0.1, C=2 this gives:
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
-from TemporalSystemBuilder import TemporalSystemBuilder
+from ElecSolver import TemporalSystemBuilder
 
 ## Defining resistances
 res_coords  = np.array([[0,2],[1,3]],dtype=int)
