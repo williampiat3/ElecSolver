@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
-from FrequencySystemBuilder import FrequencySystemBuilder
+from ElecSolver import FrequencySystemBuilder
 
 
 def test_sys_general_coo_build():

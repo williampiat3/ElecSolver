@@ -31,7 +31,7 @@ jobs:
         conda list
     - name: Set PythonPath
       run: |
-        echo "PYTHONPATH=${{ github.workspace }}/src/ElecSolver" >> $GITHUB_ENV
+        echo "PYTHONPATH=${{ github.workspace }}/src" >> $GITHUB_ENV
     - name: Run tests
       run: |
         pytest ${{ github.workspace }}/tests/
