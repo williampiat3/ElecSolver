@@ -241,28 +241,36 @@ def test_big_grid():
     ## building system
     electric_sys.build_system()
     S_i,b = electric_sys.get_init_system()
-    sol = spsolve(S_i.tocsr(),b)
-    S1,S2,rhs = electric_sys.get_system()
-
-    dt=0.08
-    ## Using Crank Nicolson integration scheme
-    A = (S2+dt/2*S1).tocoo()
-    B = rhs*dt
 
     ctx = DMumpsContext()
+    if ctx.myid == 0:
+        ctx.set_centralized_sparse(S_i)
+        sol = b.copy()
+        ctx.set_rhs(sol)
+    ctx.run(job=6) # Analysis + Factorization + Solve
+
+
+    S1,S2,rhs = electric_sys.get_system()
+
+    dt=0.8
+    ## Using Implicit Euler integration scheme
+    A = (S2+dt*S1).tocoo()
+    B = rhs*dt
+
     if ctx.myid == 0:
         ctx.set_centralized_sparse(A)
         #x = RHS.copy()
         #ctx.set_rhs(x) # Modified in place
     ctx.run(job=1) # Analysis
     ctx.run(job=2) # Factorization
-    for i in range(50):
+    ctx.set_silent()
+    for i in range(100):
         if ctx.myid == 0:
-            b = B+S2@sol - dt/2*S1@sol
+            b = B+S2@sol
             sol = b.copy()
             ctx.set_rhs(sol)
         ctx.run(job=3) # Solve
-
+    ctx.destroy() # Cleanup
         # currents_coil,currents_res,currents_capa,voltages,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
         #sol = spsolve(A,B+S2@sol)
 
