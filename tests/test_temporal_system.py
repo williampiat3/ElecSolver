@@ -67,6 +67,7 @@ def test_temporal():
     plt.plot(vals_capa,label="intensity capa")
     plt.legend()
     plt.savefig("test")
+    plt.clf()
 
 def test_temporal2():
     ## Simple tetrahedron
@@ -118,6 +119,7 @@ def test_temporal2():
     plt.plot(vals_capa,label="intensity res 2")
     plt.legend()
     plt.savefig("test")
+    plt.clf()
 
 
 def test_one_shot_temporal():
@@ -172,6 +174,7 @@ def test_one_shot_temporal():
     plt.plot(currents_res[:,1],label="intensity res 2")
     plt.legend()
     plt.savefig("test")
+    plt.clf()
 
 def test_tension():
     ## Simple tetrahedron
@@ -293,7 +296,7 @@ def test_big_grid():
     plt.title(f"Input node 0,{size-1},{size**2-size},{size**2-1} Output node {center}")
     plt.axis('off')
     plt.savefig("resistance_grid.png")
-    plt.show()
+    plt.clf()
 
 
 

@@ -3,14 +3,14 @@
 ## Overview
 
 **ElectricSystemSolver** formalizes electric systems as linear problems, suitable for both **temporal** and **frequency-domain** studies.
-It focuses on constructing the linear system representation, leaving the actual numerical solution to the user.
+It focuses on constructing the linear system representation, leaving the actual numerical resolution to the user.
 
 This repository is **not** a general-purpose electrical system solver. Instead, it acts as a **bridge** between:
 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
-Its main goal is to provide a Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in scalability—handling millions of nodes and components, assuming sufficient computational resources.
+Its main goal is to provide a friendly Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in scalability—handling millions of nodes and components, provided that you possess sufficient computational resources.
 
 
 > [!NOTE]
@@ -29,7 +29,7 @@ Its main goal is to provide a Python interface for simulating analog electric sy
       - [Example](#example)
       - [Adding a Parallel Resistance](#adding-a-parallel-resistance)
     - [TemporalSystemBuilder](#temporalsystembuilder)
-      - [Supported Elements](#supported-elements)
+      - [Features](#features-1)
       - [Example](#example-1)
   - [Solver suggestions](#solver-suggestions)
 
@@ -148,12 +148,13 @@ mutuals_data = np.array([2.j], dtype=complex)
 
 This class models **time-dependent** systems using resistors, capacitors, coils, and mutuals.
 
-#### Supported Elements
+#### Features
 
-- Tension and intensity sources
-- Resistors, capacitors, inductors
-- Inductive and resistive mutuals
-- Auto-detection of coupled subsystems
+- Supports tension and intensity sources
+- Models inductive and resistive mutuals
+- Detects and couples multiple subsystems
+- Accepts 3 dipole types: resistances, capacities and coils
+- Constructs sparse linear systems (COO format)
 
 #### Example
 
@@ -208,6 +209,7 @@ for i in range(50):
     currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sol)
     vals_res1.append(currents_res[1])
     vals_res2.append(currents_res[0])
+    ## implicit euler time iterations
     sol = spsolve(S2+dt*S1,b*dt+S2@sol)
 import matplotlib.pyplot as plt
 plt.xlabel("Time")
@@ -228,5 +230,6 @@ This outputs the following graph that displays the intensity passing through the
 - For **large-scale temporal problems**, consider using **MUMPS** (via `pyMUMPS`).
   MUMPS is more efficient when only the second member (`b`) changes during time-stepping.
 
-See example in the tests:
-`tests.test_temporal_system`
+> [!TIP]
+> See example `tests.test_temporal_system` in the tests on how to use pyMUMPS for solving the resulting system efficiently.
+
