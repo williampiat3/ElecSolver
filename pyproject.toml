@@ -44,10 +44,10 @@ platforms = [
 
 [build-system]
 requires = [
-    "setuptools>=61.0"
+    "setuptools>=61.0","setuptools_scm"
 ]
 build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools_scm]
-version_file = "ElecSolver/_version.py"
+version_file = "src/ElecSolver/_version.py"
