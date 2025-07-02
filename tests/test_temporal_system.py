@@ -246,6 +246,8 @@ def test_big_grid():
     S_i,b = electric_sys.get_init_system()
 
     ctx = DMumpsContext()
+    ## set scotch ordering instead of METIS
+    ctx.set_icntl(7,3)
     if ctx.myid == 0:
         ctx.set_centralized_sparse(S_i)
         sol = b.copy()
@@ -274,13 +276,11 @@ def test_big_grid():
             ctx.set_rhs(sol)
         ctx.run(job=3) # Solve
     ctx.destroy() # Cleanup
-        # currents_coil,currents_res,currents_capa,voltages,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
-        #sol = spsolve(A,B+S2@sol)
 
     currents_coil,currents_res,currents_capa,voltages,_  = electric_sys.build_intensity_and_voltage_from_vector(sol)
     intensities_sparse = coo_matrix((np.concatenate([currents_coil,currents_res],axis=0),(np.concatenate([coords_coil[0],coords_res[0]],axis=0),np.concatenate([coords_coil[1],coords_res[1]],axis=0))),shape=(size**2,size**2))
     intensities_sparse = intensities_sparse - intensities_sparse.T
-    # print(intensities_sparse.todense())
+
     graph =  nx.from_scipy_sparse_array(intensities_sparse)
     # Layout
     weights = [np.abs(graph[u][v]['weight']**(1/5)) for u, v in graph.edges()]
@@ -297,11 +297,6 @@ def test_big_grid():
     plt.axis('off')
     plt.savefig("resistance_grid.png")
     plt.clf()
-
-
-
-
-
 
 
 if __name__ == "__main__":

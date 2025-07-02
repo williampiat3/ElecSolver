@@ -1,8 +1,8 @@
-# ElectricSystemSolver
+# ElecSolver
 
 ## Overview
 
-**ElectricSystemSolver** formalizes electric systems as linear problems, suitable for both **temporal** and **frequency-domain** studies.
+**ElecSolver** formalizes electric systems as linear problems, suitable for both **temporal** and **frequency-domain** studies.
 It focuses on constructing the linear system representation, leaving the actual numerical resolution to the user.
 
 This repository is **not** a general-purpose electrical system solver. Instead, it acts as a **bridge** between:
@@ -19,7 +19,7 @@ Its main goal is to provide a friendly Python interface for simulating analog el
 
 ## Table of content
 
-- [ElectricSystemSolver](#electricsystemsolver)
+- [ElecSolver](#elecsolver)
   - [Overview](#overview)
   - [Table of content](#table-of-content)
   - [How to install](#how-to-install)
