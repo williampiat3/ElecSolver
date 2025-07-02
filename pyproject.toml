@@ -1,6 +1,6 @@
 [project]
 name = "ElecSolver"
-version = "v0.1.0"
+dynamic = ["version"]
 description = "Formalizes electric systems as linear problems for temporal and frequency-domain studies."
 authors = [
     { name = "William Piat", email = "william.piat3@gmail.com" }
@@ -47,7 +47,6 @@ requires = [
     "setuptools>=61.0"
 ]
 build-backend = "setuptools.build_meta"
-
 
 
 [tool.setuptools_scm]
