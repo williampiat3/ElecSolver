@@ -1,6 +1,6 @@
 [project]
-name = "ElectricSystemSolver"
-version = "0.1.0"
+name = "ElecSolver"
+version = "v0.1.0"
 description = "Formalizes electric systems as linear problems for temporal and frequency-domain studies."
 authors = [
     { name = "William Piat", email = "william.piat3@gmail.com" }
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/williampiat3/ElectricSystemSolver"
+Homepage = "https://github.com/williampiat3/ElecSolver"
 
 [project.optional-dependencies]
 dev = [
@@ -51,4 +51,4 @@ build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools_scm]
-write_to = "src/ElecSolver/_version.py"
+version_file = "src/ElecSolver/_version.py"
