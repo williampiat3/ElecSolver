@@ -1,6 +1,6 @@
 [project]
 name = "ElecSolver"
-dynamic = ["version"]
+version = "v0.1.0
 description = "Formalizes electric systems as linear problems for temporal and frequency-domain studies."
 authors = [
     { name = "William Piat", email = "william.piat3@gmail.com" }
