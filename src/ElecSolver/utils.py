@@ -1,5 +1,4 @@
 import numpy as np
-import sympy
 from scipy.sparse import coo_matrix
 
 def parallel_sum(*impedences):
@@ -87,41 +86,6 @@ def cast_complex_system_in_real_system(sys,b):
     new_b = np.concatenate((b.real,b.imag),axis=0)
     return sys_comp,new_b
 
-
-
-## Made by ChatGPT
-def lcm_of_polynomials(expr_list, *gens):
-    """
-    Computes the LCM of a list of SymPy polynomial expressions.
-
-    Parameters:
-    - expr_list: list of sympy expressions
-    - gens: optional generators (variables), e.g., x, y
-
-    Returns:
-    - sympy expression: LCM of the input polynomials
-    """
-    if not expr_list:
-        return 1
-
-    # Convert expressions to polynomials with given generators (if any)
-    polys = [sympy.Poly(expr, *gens) if gens else sympy.Poly(expr) for expr in expr_list]
-
-    # Compute LCM of polynomials
-    result = polys[0]
-    for poly in polys[1:]:
-        result = sympy.Poly(sympy.lcm(result, poly))
-
-    return result.as_expr()
-
-def get_numerator_and_denominator(expr):
-    n,d = sympy.fraction(sympy.expand(sympy.simplify(expr)))
-    return n,d
-
-
-def extract_degree_fraction(expr,symbol):
-    n,d = get_numerator_and_denominator(expr)
-    return sympy.degree(n,gen=symbol) - sympy.degree(d,gen=symbol)
 
 def constant_block_diag(A,repetitions):
     """Function to repeat the matrix A multiple times along the diagonal
