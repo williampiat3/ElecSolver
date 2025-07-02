@@ -34,27 +34,13 @@ Its main goal is to provide a friendly Python interface for simulating analog el
   - [Solver suggestions](#solver-suggestions)
 
 ## How to install
-For now this package is not distributed the only way to install it is by:
-
-1. Cloning this repo:
-
+For now this package is distributed on pypi and can be installed using pip
 ```
-git clone https://github.com/williampiat3/ElectricSystemSolver.git
+pip install ElecSolver
 ```
-
-2. Creating a conda environement using the `env.yml` file:
-
+For solving the linear systems we advise using MUMPS through pyMUMPS on linux that can be installed via pip
 ```
-conda env create -n ElecSolver -f ElectricSystemSolver/env.yml
-```
-
-> [!WARNING]
-> pyMumps is not supported on Windows (But it is on WSL!!): If you want to execute this code on Windows, remove pyMumps from the `env.yml` file and use other solvers instead
-
-3. Exporting the `PYTHONPATH` variable to import the system builders more smoothly
-
-```
-export PYTHONPATH='path/to/ElectricSystemSolver/src'
+pip install pymumps
 ```
 
 
