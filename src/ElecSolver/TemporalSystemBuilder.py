@@ -325,7 +325,7 @@ class TemporalSystemBuilder():
             j_s_S1 = np.append(j_s_S1,np.array([self.offset_j + input_node,self.offset_j+output_node,new_eq]),axis=0)
         else:
             data_S1 = np.append(data_S1,np.array([1.,-1.,sign,-sign]),axis=0)
-            i_s_S1 = np.append(i_s_init,np.array([new_eq,new_eq,input_node+self.rescaler[input_node],output_node+self.rescaler[output_node]]),axis=0)
+            i_s_S1 = np.append(i_s_S1,np.array([new_eq,new_eq,input_node+self.rescaler[input_node],output_node+self.rescaler[output_node]]),axis=0)
             j_s_S1 = np.append(j_s_S1,np.array([self.offset_j + input_node,self.offset_j+output_node,new_eq,new_eq]),axis=0)
 
 
