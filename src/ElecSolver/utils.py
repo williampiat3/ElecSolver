@@ -77,7 +77,7 @@ def cast_complex_system_in_real_system(sys,b):
     new_b
         real second member equivalent to complex system
     """
-    coords = np.stack((sys.row,sys.col),axis=1)
+    coords = np.stack((sys.row,sys.col),axis=0)
     data = np.array(sys.data,dtype=complex)
     b= b.astype(complex)
     new_coords = np.concatenate((coords,coords+[[0],[sys.shape[0]]],coords+[[sys.shape[0]],[0]],coords+[[sys.shape[0]],[sys.shape[0]]]),axis=1)

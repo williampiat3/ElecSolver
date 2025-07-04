@@ -4,6 +4,7 @@ from scipy.sparse import coo_matrix
 from ElecSolver import TemporalSystemBuilder
 from ElecSolver.utils import build_big_temporal_system
 from mumps import DMumpsContext
+from ElecSolver.utils import cast_complex_system_in_real_system
 
 
 
@@ -298,8 +299,50 @@ def test_big_grid():
     plt.savefig("resistance_grid.png")
     plt.clf()
 
+def freq_simulation():
+    ## Simple tetrahedron
+    res_coords  = np.array([[0,2],[1,3]],dtype=int)
+    res_data = np.array([1,1],dtype=float)
+
+    coil_coords  = np.array([[1,0],[2,3]],dtype=int)
+    coil_data = np.array([1,1],dtype=float)
+
+    capa_coords = np.array([[1,2],[3,0]],dtype=int)
+    capa_data = np.array([1,1],dtype=float)
+
+    ## total impedance
+    mutuals_coords=np.array([[],[]],dtype=int)
+    mutuals_data = np.array([],dtype=float)
+
+
+    res_mutuals_coords=np.array([[],[]],dtype=int)
+    res_mutuals_data = np.array([],dtype=float)
+
+    fvect = [10,20,100,1000]
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.set_mass(0)
+    elec_sys.build_system()
+    elec_sys.build_second_member_intensity(10,1,0)
+    sys1,sys2,rhs_ref = elec_sys.get_system()
+    fake_sys,rhs = cast_complex_system_in_real_system((sys1+1j*sys2).tocoo(),rhs_ref)
+    ctx = DMumpsContext()
+    if ctx.myid == 0:
+        ctx.set_centralized_sparse(fake_sys)
+    ctx.run(job=1) # Analysis
+    for f in fvect:
+        frequency_system,_ = cast_complex_system_in_real_system((sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref)
+        if ctx.myid == 0:
+            ctx.set_centralized_assembled_values(frequency_system.data)
+        ctx.run(job=2)
+        if ctx.myid == 0:
+            sol_real = rhs.copy()
+            ctx.set_rhs(sol_real)
+        ctx.run(job=3) # Solve
+        sol = sol_real[:rhs_ref.shape[0]] + 1j*sol_real[rhs_ref.shape[0]:]
+        currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
 if __name__ == "__main__":
+    freq_simulation()
     test_big_grid()
     test_one_shot_temporal()
     test_tension()

@@ -2,6 +2,8 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from ElecSolver import FrequencySystemBuilder
+from mumps import DMumpsContext
+from ElecSolver.utils import cast_complex_system_in_real_system
 
 
 def test_sys_general_coo_build():
