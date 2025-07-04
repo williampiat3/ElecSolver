@@ -456,7 +456,7 @@ class TemporalSystemBuilder():
             return (sol[...,:offset_coil]*sign[:offset_coil],
                 sol[...,offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
                 sol[...,offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
-                sol[...,self.number_intensities:-self.source_count],
+                sol[...,self.number_intensities:],
                 np.array([],dtype=float)
             )
 
