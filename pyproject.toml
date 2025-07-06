@@ -1,6 +1,6 @@
 [project]
 name = "ElecSolver"
-version = "0.1.3"
+version = "0.1.4"
 description = "Formalizes electric systems as linear problems for temporal and frequency-domain studies."
 authors = [
     { name = "William Piat", email = "william.piat3@gmail.com" }
