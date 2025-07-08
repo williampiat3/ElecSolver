@@ -18,7 +18,7 @@ def test_sys_general_coo_build():
 
 
     electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
-    # setting the mass
+    # setting the ground
     electric_sys.set_ground(0)
     electric_sys.build_system()
     electric_sys.build_second_member_tension(tension=10,input_node=1,output_node=0)
@@ -127,7 +127,7 @@ def test_parallel_res():
         mutuals_data
     )
 
-    # Set node masses
+    # Set node ground
     electric_sys.set_ground(0, 3)
     electric_sys.build_system()
     electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)

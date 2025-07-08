@@ -92,8 +92,8 @@ electric_sys = FrequencySystemBuilder(
     mutuals_data
 )
 
-# Set node masses
-# 2 values because 2 subsystems
+# Set ground
+# 2 values because one for each subsystem
 electric_sys.set_ground(0, 3)
 # Building system
 electric_sys.build_system()
@@ -175,7 +175,7 @@ res_mutuals_data = np.array([],dtype=float)
 
 ## initializing system
 elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-## Seting mass at point 0
+## Seting ground at point 0
 elec_sys.set_ground(0)
 ## Build second member
 elec_sys.build_system()

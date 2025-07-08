@@ -2,8 +2,8 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from collections import namedtuple
 
-SolutionFrequency = namedtuple("Solution",["intensities","potentials","intensities_sources"])
-SolutionTemporal = namedtuple("Solution",["intensities_coil","intensities_res","intensities_capa","potentials","intensities_sources"])
+SolutionFrequency = namedtuple("ComplexSolution",["intensities","potentials","intensities_sources"])
+SolutionTemporal = namedtuple("RealSolution",["intensities_coil","intensities_res","intensities_capa","potentials","intensities_sources"])
 
 def parallel_sum(*impedences):
     """Function to compute the graph of impedences resulting from // graphs
