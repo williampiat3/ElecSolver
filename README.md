@@ -94,7 +94,7 @@ electric_sys = FrequencySystemBuilder(
 
 # Set node masses
 # 2 values because 2 subsystems
-electric_sys.set_mass(0, 3)
+electric_sys.set_ground(0, 3)
 # Building system
 electric_sys.build_system()
 electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
@@ -102,10 +102,10 @@ electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_no
 # Get and solve the system
 sys, b = electric_sys.get_system()
 sol = spsolve(sys.tocsr(), b)
-intensities, potentials = electric_sys.build_intensity_and_voltage_from_vector(sol)
+frequencial_response = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
 ## We see a tension appearing on the lonely coil (between node 3 and 4)
-print(potentials[3]-potentials[4])
+print(frequencial_response.potentials[3]-frequencial_response.potentials[4])
 ```
 #### Adding a Parallel Resistance
 We want to add components in parallel with existing components for instance inserting a resistor in parallel with the first inductance (between nodes 0 and 2)
@@ -176,7 +176,7 @@ res_mutuals_data = np.array([],dtype=float)
 ## initializing system
 elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
 ## Seting mass at point 0
-elec_sys.set_mass(0)
+elec_sys.set_ground(0)
 ## Build second member
 elec_sys.build_system()
 elec_sys.build_second_member_intensity(10,1,0)
@@ -192,9 +192,9 @@ dt=0.08
 vals_res1 = []
 vals_res2 = []
 for i in range(50):
-    currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sol)
-    vals_res1.append(currents_res[1])
-    vals_res2.append(currents_res[0])
+    temporal_response = elec_sys.build_intensity_and_voltage_from_vector(sol)
+    vals_res1.append(temporal_response.intensities_res[1])
+    vals_res2.append(temporal_response.intensities_res[0])
     ## implicit euler time iterations
     sol = spsolve(S2+dt*S1,b*dt+S2@sol)
 import matplotlib.pyplot as plt

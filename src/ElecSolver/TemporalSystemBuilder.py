@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix, block_diag
-
+from .utils import SolutionTemporal
 
 class TemporalSystemBuilder():
     def __init__(self,coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,inductive_mutuals_coords,inductive_mutuals_data,res_mutual_coords,res_mutual_data):
@@ -88,7 +88,7 @@ class TemporalSystemBuilder():
         self.offset_i = offset_i
         self.offset_j = offset_j
 
-    def set_mass(self,*args):
+    def set_ground(self,*args):
         """Function to affect a mass to subsystems
         If the system already has a mass provided then a warning is displayed and mass reaffected
         """
@@ -446,14 +446,14 @@ class TemporalSystemBuilder():
         offset_res = self.res_data.shape[0]
         offset_capa = self.capa_data.shape[0]
         if self.source_count!=0:
-            return (sol[...,:offset_coil]*sign[:offset_coil],
+            return SolutionTemporal(sol[...,:offset_coil]*sign[:offset_coil],
                 sol[...,offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
                 sol[...,offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
                 sol[...,self.number_intensities:-self.source_count],
                 sol[...,-self.source_count:]*self.source_signs
             )
         else:
-            return (sol[...,:offset_coil]*sign[:offset_coil],
+            return SolutionTemporal(sol[...,:offset_coil]*sign[:offset_coil],
                 sol[...,offset_coil:offset_coil+offset_res]*sign[offset_coil:offset_coil+offset_res],
                 sol[...,offset_coil+offset_res:offset_coil+offset_res+offset_capa]*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
                 sol[...,self.number_intensities:],

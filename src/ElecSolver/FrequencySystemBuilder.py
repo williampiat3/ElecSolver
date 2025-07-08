@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix
+from .utils import SolutionFrequency
 
 
 class FrequencySystemBuilder():
@@ -52,7 +53,7 @@ class FrequencySystemBuilder():
         self.offset_i = offset_i
         self.offset_j = offset_j
 
-    def set_mass(self,*args):
+    def set_ground(self,*args):
         for index in args:
             for pivot,subsystem in enumerate(self.list_of_subgraphs):
                 if index in subsystem:
@@ -252,13 +253,13 @@ class FrequencySystemBuilder():
     def build_intensity_and_voltage_from_vector(self,sol):
         sign = np.sign(self.impedence_coords[1]-self.impedence_coords[0])
         if self.source_count!=0:
-            return (sol[:self.number_intensities]*sign,
+            return SolutionFrequency(sol[:self.number_intensities]*sign,
                     sol[self.number_intensities:-self.source_count],
                     sol[...,-self.source_count:]*self.source_signs
                     )
 
         else:
-            return (sol[:self.number_intensities]*sign,
+            return SolutionFrequency(sol[:self.number_intensities]*sign,
                     sol[self.number_intensities:],
                     np.array([],dtype=float)
                     )

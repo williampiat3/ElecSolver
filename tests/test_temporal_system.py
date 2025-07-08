@@ -28,7 +28,7 @@ def test_temporal():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-    elec_sys.set_mass(0)
+    elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
@@ -90,7 +90,7 @@ def test_temporal2():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-    elec_sys.set_mass(0)
+    elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
@@ -103,7 +103,7 @@ def test_temporal2():
     b = np.zeros(S_i.shape[0])
     b[rhs[1][0]]=rhs[0]
     print((S1+1j*S2).todense())
-    sol = spsolve(S_i,b)
+    sol = spsolve(S_i.tocsr(),b)
     print(elec_sys.build_intensity_and_voltage_from_vector(sol))
     dt=0.08
     vals = []
@@ -143,7 +143,7 @@ def test_one_shot_temporal():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-    elec_sys.set_mass(0)
+    elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     S_i,b = elec_sys.get_init_system()
@@ -197,7 +197,7 @@ def test_tension():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-    elec_sys.set_mass(0)
+    elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_tension(10,1,0)
     S_i,b = elec_sys.get_init_system()
@@ -235,7 +235,7 @@ def test_big_grid():
 
 
     electric_sys = TemporalSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)
-    electric_sys.set_mass(0)
+    electric_sys.set_ground(0)
 
     electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=center)
     electric_sys.build_second_member_intensity(intensity=2,input_node=size-1,output_node=center)
@@ -320,7 +320,7 @@ def freq_simulation():
 
     fvect = [10,20,100,1000]
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-    elec_sys.set_mass(0)
+    elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     sys1,sys2,rhs_ref = elec_sys.get_system()

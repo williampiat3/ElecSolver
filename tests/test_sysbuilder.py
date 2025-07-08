@@ -19,7 +19,7 @@ def test_sys_general_coo_build():
 
     electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
     # setting the mass
-    electric_sys.set_mass(0)
+    electric_sys.set_ground(0)
     electric_sys.build_system()
     electric_sys.build_second_member_tension(tension=10,input_node=1,output_node=0)
     ## Need to evaluate the system because it was altered when calling the second member
@@ -44,7 +44,7 @@ def test_sys_general_mutual_intensity():
 
     electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
     # setting the mass
-    electric_sys.set_mass(0,3)
+    electric_sys.set_ground(0,3)
     # Build system and second member
     electric_sys.build_system()
     electric_sys.build_second_member_intensity(intensity=10,input_node=1,output_node=0)
@@ -75,7 +75,7 @@ def test_res_grid():
 
 
     electric_sys = FrequencySystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutuals_coords=mutual_coords,mutuals_data=mutual_data)
-    electric_sys.set_mass(0)
+    electric_sys.set_ground(0)
     electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=24)
     electric_sys.build_second_member_intensity(intensity=2,input_node=42,output_node=24)
     electric_sys.build_second_member_intensity(intensity=2,input_node=48,output_node=24)
@@ -128,7 +128,7 @@ def test_parallel_res():
     )
 
     # Set node masses
-    electric_sys.set_mass(0, 3)
+    electric_sys.set_ground(0, 3)
     electric_sys.build_system()
     electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
 
