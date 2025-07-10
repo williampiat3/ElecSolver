@@ -341,7 +341,51 @@ def freq_simulation():
         sol = sol_real[:rhs_ref.shape[0]] + 1j*sol_real[rhs_ref.shape[0]:]
         currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
+def test_hydraulic():
+    ## Defining resistances
+    res_coords  = np.array([[0,2,1,0,1,3],[1,3,3,2,2,0]],dtype=int)
+    res_data = np.array([2,3,1,1,1,1],dtype=float)
+    ## Defining coils
+    coil_coords  = np.array([[],[]],dtype=int)
+    coil_data = np.array([],dtype=float)
+    ## Defining capacities
+    capa_coords = np.array([[],[]],dtype=int)
+    capa_data = np.array([],dtype=float)
+
+    ## Defining empty mutuals here
+    mutuals_coords=np.array([[],[]],dtype=int)
+    mutuals_data = np.array([],dtype=float)
+
+
+    res_mutuals_coords=np.array([[],[]],dtype=int)
+    res_mutuals_data = np.array([],dtype=float)
+
+    ## initializing system
+    hydrolic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    ## Seting ground at point 0
+    hydrolic_sys.set_ground(0)
+    ## Build second member
+    hydrolic_sys.build_system()
+    ## enforcing a pressure delta of 10 Pa
+    hydrolic_sys.build_second_member_tension(10,1,0)
+    # get system (S1 is real part, S2 derivative part)
+    # the problem is only resitive thus S2 =0
+    S1,S2,rhs = hydrolic_sys.get_system()
+
+    sol = spsolve(S1,rhs)
+    solution = hydrolic_sys.build_intensity_and_voltage_from_vector(sol)
+    # After you computed the solution of the system
+
+    pressure_input=10000
+    pressure_node=0
+    # Rescaling the potential to the new reference
+    potentials = solution.potentials - solution.potentials[pressure_node] + pressure_input
+    print("Pressures in the system:", potentials)
+    ## get the flux passing through the source
+    print("Debit through the system",solution.intensities_sources[0])
+
 if __name__ == "__main__":
+    test_hydraulic()
     freq_simulation()
     test_big_grid()
     test_one_shot_temporal()
