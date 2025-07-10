@@ -229,22 +229,27 @@ We are considering the following hydraulic problem:
 
 ![Hydraulic system](img/hydraulic.png)
 
+Taking R=1 this gives
+
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import TemporalSystemBuilder
 
 ## Defining resistances
+R = 1
 res_coords  = np.array([[0,2,1,0,1,3],[1,3,3,2,2,0]],dtype=int)
-res_data = np.array([2,3,1,1,1,1],dtype=float)
-## Defining coils
+res_data = R*np.array([2,3,1,1,1,1],dtype=float)
+
+## Here we are not using coils, capacities or mutuals we defined them as empty
+## Defining 0 coil
 coil_coords  = np.array([[],[]],dtype=int)
 coil_data = np.array([],dtype=float)
-## Defining capacities
+## Defining 0 capacity
 capa_coords = np.array([[],[]],dtype=int)
 capa_data = np.array([],dtype=float)
 
-## Defining empty mutuals here
+## Defining no mutual
 mutuals_coords=np.array([[],[]],dtype=int)
 mutuals_data = np.array([],dtype=float)
 
