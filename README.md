@@ -278,6 +278,6 @@ pressure_node=0
 # Rescaling the potential to the new reference
 potentials = solution.potentials - solution.potentials[pressure_node] + pressure_input
 print("Pressures in the system:", potentials)
-## get the flux passing through the source
+## get the flux passing through the system
 print("Debit through the system",solution.intensities_sources[0])
 ```
