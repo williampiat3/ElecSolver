@@ -361,19 +361,19 @@ def test_hydraulic():
     res_mutuals_data = np.array([],dtype=float)
 
     ## initializing system
-    hydrolic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
     ## Seting ground at point 0
-    hydrolic_sys.set_ground(0)
+    hydraulic_sys.set_ground(0)
     ## Build second member
-    hydrolic_sys.build_system()
+    hydraulic_sys.build_system()
     ## enforcing a pressure delta of 10 Pa
-    hydrolic_sys.build_second_member_tension(10,1,0)
+    hydraulic_sys.build_second_member_tension(10,1,0)
     # get system (S1 is real part, S2 derivative part)
     # the problem is only resitive thus S2 =0
-    S1,S2,rhs = hydrolic_sys.get_system()
+    S1,S2,rhs = hydraulic_sys.get_system()
 
     sol = spsolve(S1,rhs)
-    solution = hydrolic_sys.build_intensity_and_voltage_from_vector(sol)
+    solution = hydraulic_sys.build_intensity_and_voltage_from_vector(sol)
     # After you computed the solution of the system
 
     pressure_input=10000
