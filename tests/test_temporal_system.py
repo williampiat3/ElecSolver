@@ -372,7 +372,7 @@ def test_hydraulic():
     # the problem is only resitive thus S2 =0
     S1,S2,rhs = hydraulic_sys.get_system()
 
-    sol = spsolve(S1,rhs)
+    sol = spsolve(S1.tocsr(),rhs)
     solution = hydraulic_sys.build_intensity_and_voltage_from_vector(sol)
     # After you computed the solution of the system
 
