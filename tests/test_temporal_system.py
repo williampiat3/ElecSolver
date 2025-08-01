@@ -3,8 +3,11 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from ElecSolver import TemporalSystemBuilder
 from ElecSolver.utils import build_big_temporal_system
-from mumps import DMumpsContext
+# from mumps import DMumpsContext
 from ElecSolver.utils import cast_complex_system_in_real_system
+from mumps4py.mumps_solver import MumpsSolver
+import numpy as np
+from mpi4py import MPI
 
 
 
@@ -341,6 +344,87 @@ def freq_simulation():
         sol = sol_real[:rhs_ref.shape[0]] + 1j*sol_real[rhs_ref.shape[0]:]
         currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
+def freq_simu_mumps4py():
+        ## Simple tetrahedron
+    res_coords  = np.array([[0,2],[1,3]],dtype=int)
+    res_data = np.array([1,1],dtype=float)
+
+    coil_coords  = np.array([[1,0],[2,3]],dtype=int)
+    coil_data = np.array([1,1],dtype=float)
+
+    capa_coords = np.array([[1,2],[3,0]],dtype=int)
+    capa_data = np.array([1,1],dtype=float)
+
+    ## total impedance
+    mutuals_coords=np.array([[],[]],dtype=int)
+    mutuals_data = np.array([],dtype=float)
+
+
+    res_mutuals_coords=np.array([[],[]],dtype=int)
+    res_mutuals_data = np.array([],dtype=float)
+
+    fvect = [10,20,100,1000]
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.set_ground(0)
+    elec_sys.build_system()
+    elec_sys.build_second_member_intensity(10,1,0)
+    sys1,sys2,rhs_ref = elec_sys.get_system()
+    sys = (sys1 +1.j*10*sys2).tocoo()
+    from scipy.sparse.csgraph import structural_rank
+    print(structural_rank(sys))
+    print(sys.shape)
+    print(spsolve(sys,rhs_ref))
+    rank = MPI.COMM_WORLD.Get_rank()
+    size = MPI.COMM_WORLD.Get_size()
+    print(rank,size)
+    print(sys.data.dtype)
+
+
+
+
+    solver = MumpsSolver(verbose=True, system="complex128")
+
+
+    ts = MPI.Wtime()
+    print(solver.struct.sym)
+    solver.set_coo_centralized(sys)
+
+
+    solver._mumps_call(job=1)
+
+    rhs = rhs_ref.copy().astype(np.complex128)
+
+    solver._mumps_call(job=2)
+
+    solver.set_rhs_centralized(rhs)
+    solver._mumps_call(3)
+
+    print("Solution:", rhs)
+    print("cpu time is ",  MPI.Wtime() - ts)
+
+
+
+
+
+
+    # fake_sys,rhs = cast_complex_system_in_real_system((sys1+1j*sys2).tocoo(),rhs_ref)
+    # ctx = DMumpsContext()
+    # if ctx.myid == 0:
+    #     ctx.set_centralized_sparse(fake_sys)
+    # ctx.run(job=1) # Analysis
+    # for f in fvect:
+    #     frequency_system,_ = cast_complex_system_in_real_system((sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref)
+    #     if ctx.myid == 0:
+    #         ctx.set_centralized_assembled_values(frequency_system.data)
+    #     ctx.run(job=2)
+    #     if ctx.myid == 0:
+    #         sol_real = rhs.copy()
+    #         ctx.set_rhs(sol_real)
+    #     ctx.run(job=3) # Solve
+    #     sol = sol_real[:rhs_ref.shape[0]] + 1j*sol_real[rhs_ref.shape[0]:]
+    #     currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
+
+
 def test_hydraulic():
     ## Defining resistances
     res_coords  = np.array([[0,2,1,0,1,3],[1,3,3,2,2,0]],dtype=int)
@@ -385,10 +469,12 @@ def test_hydraulic():
     print("Debit through the system",solution.intensities_sources[0])
 
 if __name__ == "__main__":
-    test_hydraulic()
-    freq_simulation()
-    test_big_grid()
-    test_one_shot_temporal()
-    test_tension()
-    test_temporal()
-    test_temporal2()
+    freq_simu_mumps4py()
+
+    # test_hydraulic()
+    # freq_simulation()
+    # test_big_grid()
+    # test_one_shot_temporal()
+    # test_tension()
+    # test_temporal()
+    # test_temporal2()
