@@ -50,4 +50,8 @@ build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools_scm]
-version_file = "src/ElecSolver/_version.py"
+write_to = "src/ElecSolver/_version.py"
+
+[project.license]
+text="MIT"
+files=["LICENSE.txt"]
