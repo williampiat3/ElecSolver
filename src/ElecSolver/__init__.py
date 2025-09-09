@@ -1,7 +1,4 @@
-try:
-    from ._version import __version__
-except ImportError:  # pragma: no cover
-    __version__ = "None"
+__version__ = "1.0.0"
 
 from .FrequencySystemBuilder import FrequencySystemBuilder
 from .TemporalSystemBuilder import TemporalSystemBuilder
