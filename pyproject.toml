@@ -6,7 +6,7 @@ authors = [
     { name = "William Piat", email = "william.piat3@gmail.com" }
 ]
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { text = "MIT", files=["LICENSE.txt"] }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX",
@@ -48,10 +48,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-
 [tool.setuptools_scm]
 write_to = "src/ElecSolver/_version.py"
 
-[project.license]
-text="MIT"
-files=["LICENSE.txt"]
