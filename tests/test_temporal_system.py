@@ -60,14 +60,14 @@ def test_temporal():
 
 
 
-    import matplotlib.pyplot as plt
-    plt.xlabel("Time")
-    plt.ylabel("Intensity")
-    plt.plot(vals,label="intensity coil")
-    plt.plot(vals_capa,label="intensity capa")
-    plt.legend()
-    plt.savefig("test")
-    plt.clf()
+    # import matplotlib.pyplot as plt
+    # plt.xlabel("Time")
+    # plt.ylabel("Intensity")
+    # plt.plot(vals,label="intensity coil")
+    # plt.plot(vals_capa,label="intensity capa")
+    # plt.legend()
+    # plt.savefig("test")
+    # plt.clf()
 
 def test_temporal2():
     ## Simple tetrahedron
@@ -112,14 +112,14 @@ def test_temporal2():
         vals.append(currents_res[1])
         vals_capa.append(currents_res[0])
         sol = spsolve(S2+dt*S1,b*dt+S2@sol)
-    import matplotlib.pyplot as plt
-    plt.xlabel("Time")
-    plt.ylabel("Intensity")
-    plt.plot(vals,label="intensity res 1")
-    plt.plot(vals_capa,label="intensity res 2")
-    plt.legend()
-    plt.savefig("test")
-    plt.clf()
+    # import matplotlib.pyplot as plt
+    # plt.xlabel("Time")
+    # plt.ylabel("Intensity")
+    # plt.plot(vals,label="intensity res 1")
+    # plt.plot(vals_capa,label="intensity res 2")
+    # plt.legend()
+    # plt.savefig("test")
+    # plt.clf()
 
 
 def test_one_shot_temporal():
@@ -164,14 +164,14 @@ def test_one_shot_temporal():
 
     currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sols)
 
-    import matplotlib.pyplot as plt
-    plt.xlabel("Time")
-    plt.ylabel("Intensity")
-    plt.plot(currents_res[:,0],label="intensity res 1")
-    plt.plot(currents_res[:,1],label="intensity res 2")
-    plt.legend()
-    plt.savefig("test")
-    plt.clf()
+    # import matplotlib.pyplot as plt
+    # plt.xlabel("Time")
+    # plt.ylabel("Intensity")
+    # plt.plot(currents_res[:,0],label="intensity res 1")
+    # plt.plot(currents_res[:,1],label="intensity res 2")
+    # plt.legend()
+    # plt.savefig("test")
+    # plt.clf()
 
 def test_tension():
     ## Simple tetrahedron
@@ -202,8 +202,7 @@ def test_tension():
 
 def test_big_grid():
     import networkx as nx
-    import matplotlib.pyplot as plt
-    import matplotlib
+
     size=31
     G = nx.grid_2d_graph(size, size)
     pos = {(x,y):(y,-x) for x,y in G.nodes()}
@@ -274,19 +273,22 @@ def test_big_grid():
     graph =  nx.from_scipy_sparse_array(intensities_sparse)
     # Layout
     weights = [np.abs(graph[u][v]['weight']**(1/5)) for u, v in graph.edges()]
-    # Normalize weights for colormap
-    norm = matplotlib.colors.Normalize(vmin=min(weights), vmax=max(weights))
-    cmap = matplotlib.cm.viridis  # You can also try plasma, inferno, coolwarm, etc.
-    edge_colors = [cmap(norm(w)) for w in weights]
+    # # Normalize weights for colormap
 
-    pos = {n:(y,-x) for (x,y),n in zip(G.nodes(),graph.nodes)}
-    # Plot the graph
-    plt.figure(figsize=(8, 6))
-    nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, width=np.array(weights)*4)
-    plt.title(f"Input node 0,{size-1},{size**2-size},{size**2-1} Output node {center}")
-    plt.axis('off')
-    plt.savefig("resistance_grid.png")
-    plt.clf()
+    # import matplotlib.pyplot as plt
+    # import matplotlib
+    # norm = matplotlib.colors.Normalize(vmin=min(weights), vmax=max(weights))
+    # cmap = matplotlib.cm.viridis  # You can also try plasma, inferno, coolwarm, etc.
+    # edge_colors = [cmap(norm(w)) for w in weights]
+
+    # pos = {n:(y,-x) for (x,y),n in zip(G.nodes(),graph.nodes)}
+    # # Plot the graph
+    # plt.figure(figsize=(8, 6))
+    # nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, width=np.array(weights)*4)
+    # plt.title(f"Input node 0,{size-1},{size**2-size},{size**2-1} Output node {center}")
+    # plt.axis('off')
+    # plt.savefig("resistance_grid.png")
+    # plt.clf()
 
 def freq_simulation():
     ## Simple tetrahedron
