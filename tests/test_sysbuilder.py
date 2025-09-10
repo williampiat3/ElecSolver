@@ -2,7 +2,6 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from ElecSolver import FrequencySystemBuilder
-from ElecSolver.utils import cast_complex_system_in_real_system
 
 
 def test_sys_general_coo_build():
@@ -59,8 +58,6 @@ def test_sys_general_mutual_intensity():
 
 def test_res_grid():
     import networkx as nx
-    import matplotlib.pyplot as plt
-    import matplotlib
     G = nx.grid_2d_graph(7, 7)
     pos = {(x,y):(y,-x) for x,y in G.nodes()}
 
@@ -90,23 +87,25 @@ def test_res_grid():
     graph =  nx.from_scipy_sparse_array(intensities_sparse)
     # Layout
     weights = [np.abs(graph[u][v]['weight']**(1/5)) for u, v in graph.edges()]
-    # Normalize weights for colormap
-    norm = matplotlib.colors.Normalize(vmin=min(weights), vmax=max(weights))
-    cmap = matplotlib.cm.viridis  # You can also try plasma, inferno, coolwarm, etc.
-    edge_colors = [cmap(norm(w)) for w in weights]
+    # # Normalize weights for colormap
+    # import matplotlib.pyplot as plt
+    # import matplotlib
+    # norm = matplotlib.colors.Normalize(vmin=min(weights), vmax=max(weights))
+    # cmap = matplotlib.cm.viridis  # You can also try plasma, inferno, coolwarm, etc.
+    # edge_colors = [cmap(norm(w)) for w in weights]
 
-    pos = {n:(y,-x) for (x,y),n in zip(G.nodes(),graph.nodes)}
-    # Plot the graph
-    plt.figure(figsize=(8, 6))
-    nx.draw_networkx_nodes(graph, pos, node_color='lightblue', node_size=700)
-    nx.draw_networkx_labels(graph, pos)
-    # Draw edges with color and width
-    nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, width=np.array(weights)*10)
+    # pos = {n:(y,-x) for (x,y),n in zip(G.nodes(),graph.nodes)}
+    # # Plot the graph
+    # plt.figure(figsize=(8, 6))
+    # nx.draw_networkx_nodes(graph, pos, node_color='lightblue', node_size=700)
+    # nx.draw_networkx_labels(graph, pos)
+    # # Draw edges with color and width
+    # nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, width=np.array(weights)*10)
 
-    plt.title("Input node 0,6,42,48 Output node 24")
-    plt.axis('off')
-    plt.savefig("resistance_grid.png")
-    plt.show()
+    # plt.title("Input node 0,6,42,48 Output node 24")
+    # plt.axis('off')
+    # plt.savefig("resistance_grid.png")
+    # plt.show()
 
 def test_parallel_res():
     # Sparse Python impedence matrix (notice coil impedence between points 0 and 2, and coil impedence between 3 and 4 )
