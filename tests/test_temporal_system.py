@@ -3,8 +3,7 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import coo_matrix
 from ElecSolver import TemporalSystemBuilder
 from ElecSolver.utils import build_big_temporal_system
-from mumps import DMumpsContext
-from ElecSolver.utils import cast_complex_system_in_real_system
+from mumps import Context
 
 
 
@@ -153,14 +152,11 @@ def test_one_shot_temporal():
     nb_timesteps=100
     ## build big system for no for loop!
     S,RHS = build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps)
-    ctx = DMumpsContext()
-    import time
-    if ctx.myid == 0:
-        ctx.set_centralized_sparse(S)
-        x = RHS.copy()
-        ctx.set_rhs(x) # Modified in place
-    ctx.run(job=6) # Analysis + Factorization + Solve
-    ctx.destroy() # Cleanup
+    ctx = Context()
+    ctx.set_matrix(S)
+    ctx.analyze()
+    ctx.factor()
+    x = ctx.solve(RHS)
 
     ## adding initial conditions
     sols = np.concatenate([sol[np.newaxis],x.reshape(S.shape[0]//sol.shape[0],sol.shape[0])],axis=0)
@@ -246,14 +242,13 @@ def test_big_grid():
     electric_sys.build_system()
     S_i,b = electric_sys.get_init_system()
 
-    ctx = DMumpsContext()
+    ctx = Context()
     ## set scotch ordering instead of METIS
-    ctx.set_icntl(7,3)
-    if ctx.myid == 0:
-        ctx.set_centralized_sparse(S_i)
-        sol = b.copy()
-        ctx.set_rhs(sol)
-    ctx.run(job=6) # Analysis + Factorization + Solve
+
+    ctx.set_matrix(S_i)
+    ctx.analyze()
+    ctx.factor(ordering = "scotch")
+    sol = ctx.solve(b)
 
 
     S1,S2,rhs = electric_sys.get_system()
@@ -263,20 +258,14 @@ def test_big_grid():
     A = (S2+dt*S1).tocoo()
     B = rhs*dt
 
-    if ctx.myid == 0:
-        ctx.set_centralized_sparse(A)
-        #x = RHS.copy()
-        #ctx.set_rhs(x) # Modified in place
-    ctx.run(job=1) # Analysis
-    ctx.run(job=2) # Factorization
-    ctx.set_silent()
+    ctx.set_matrix(A)
+    ctx.analyze()
+    ctx.factor(ordering = "scotch")
+
     for i in range(100):
-        if ctx.myid == 0:
-            b = B+S2@sol
-            sol = b.copy()
-            ctx.set_rhs(sol)
-        ctx.run(job=3) # Solve
-    ctx.destroy() # Cleanup
+        b = B+S2@sol
+        sol = ctx.solve(b)
+
 
     currents_coil,currents_res,currents_capa,voltages,_  = electric_sys.build_intensity_and_voltage_from_vector(sol)
     intensities_sparse = coo_matrix((np.concatenate([currents_coil,currents_res],axis=0),(np.concatenate([coords_coil[0],coords_res[0]],axis=0),np.concatenate([coords_coil[1],coords_res[1]],axis=0))),shape=(size**2,size**2))
@@ -324,21 +313,15 @@ def freq_simulation():
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     sys1,sys2,rhs_ref = elec_sys.get_system()
-    fake_sys,rhs = cast_complex_system_in_real_system((sys1+1j*sys2).tocoo(),rhs_ref)
-    ctx = DMumpsContext()
-    if ctx.myid == 0:
-        ctx.set_centralized_sparse(fake_sys)
-    ctx.run(job=1) # Analysis
+    fake_sys,rhs = (sys1+10j*sys2).tocoo(),rhs_ref
+    ctx = Context()
+    ctx.set_matrix(fake_sys)
+    ctx.analyze()
     for f in fvect:
-        frequency_system,_ = cast_complex_system_in_real_system((sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref)
-        if ctx.myid == 0:
-            ctx.set_centralized_assembled_values(frequency_system.data)
-        ctx.run(job=2)
-        if ctx.myid == 0:
-            sol_real = rhs.copy()
-            ctx.set_rhs(sol_real)
-        ctx.run(job=3) # Solve
-        sol = sol_real[:rhs_ref.shape[0]] + 1j*sol_real[rhs_ref.shape[0]:]
+        frequency_system,_ = (sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref
+        ctx.factor(frequency_system,reuse_analysis=True)
+        sol = ctx.solve(rhs_ref)
+
         currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
 def test_hydraulic():

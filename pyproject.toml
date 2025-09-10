@@ -26,7 +26,7 @@ Homepage = "https://github.com/williampiat3/ElecSolver"
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "pymumps",
+    "python-mumps",
 ]
 
 [tool.setuptools.packages.find]
@@ -41,6 +41,8 @@ platforms = [
     "Linux",
     "Unix",
 ]
+
+[tool.setuptools_scm]
 
 [build-system]
 requires = ["setuptools>=80", "setuptools-scm>=8"]
