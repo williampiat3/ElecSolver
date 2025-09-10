@@ -40,7 +40,7 @@ def test_temporal():
     b = np.zeros(S_i.shape[0])
     b[rhs[1][0]]=rhs[0]
 
-    sol = spsolve(S_i,b)
+    sol = spsolve(S_i.tocsr(),b)
     print(elec_sys.build_intensity_and_voltage_from_vector(sol))
     dt=0.08
     vals = []
