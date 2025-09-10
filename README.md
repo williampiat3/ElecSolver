@@ -35,13 +35,17 @@ Its main goal is to provide a friendly Python interface for simulating analog el
   - [Extra uses: Hydraulic or Thermal system modeling](#extra-uses-hydraulic-or-thermal-system-modeling)
 
 ## How to install
-For now this package is distributed on pypi and can be installed using pip
+For now this package is distributed on pypi and can be installed using pip and conda/mamba
 ```
 pip install ElecSolver
 ```
-For solving the linear systems we advise using MUMPS through pyMUMPS on linux that can be installed via pip
+or 
 ```
-pip install pymumps
+conda install elecsolver
+```
+For solving the linear systems we advise using MUMPS through python-mumps on linux that can be installed via conda
+```
+conda install python-mumps
 ```
 
 
