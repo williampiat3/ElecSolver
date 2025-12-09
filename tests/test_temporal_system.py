@@ -314,7 +314,7 @@ def freq_simulation():
     elec_sys.set_ground(0)
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
-    sys1,sys2,rhs_ref = elec_sys.get_system()
+    sys1,sys2,rhs_ref = elec_sys.get_system(sparse_rhs=True)
     fake_sys,rhs = (sys1+10j*sys2).tocoo(),rhs_ref
     ctx = Context()
     ctx.set_matrix(fake_sys)
@@ -322,8 +322,7 @@ def freq_simulation():
     for f in fvect:
         frequency_system,_ = (sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref
         ctx.factor(frequency_system,reuse_analysis=True)
-        sol = ctx.solve(rhs_ref)
-
+        sol = ctx.solve(rhs_ref).ravel()
         currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
 def test_hydraulic():

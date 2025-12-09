@@ -345,8 +345,12 @@ class TemporalSystemBuilder():
         self.source_signs=np.append(self.source_signs,[sign])
         return self.rhs
 
-    def get_init_system(self):
+    def get_init_system(self,sparse_rhs=False):
         """Function to determine the initial state of the system as coo_matrix
+        Parameters
+        ----------
+        sparse_rhs : bool
+            whether to return the second member as a sparse vector
 
         Returns
         -------
@@ -355,14 +359,24 @@ class TemporalSystemBuilder():
         rhs:
             right hand side of the system to solve
         """
-        sys = coo_matrix(self.S_init,shape=(self.number_intensities+self.size+self.source_count,self.number_intensities+self.size+self.source_count))
-        rhs = np.zeros(self.number_intensities+self.size+self.source_count)
-        (data_rhs,(nodes,)) = self.rhs
-        np.add.at(rhs, nodes, data_rhs)
+        size = self.number_intensities+self.size+self.source_count
+        sys = coo_matrix(self.S_init,shape=(size,size))
+        if sparse_rhs:
+            (data_rhs,(nodes,)) = self.rhs
+            rhs = coo_matrix((data_rhs,(nodes,np.zeros_like(nodes,dtype=int))),shape=(size,1))
+            rhs.sum_duplicates()
+        else:
+            rhs = np.zeros(size)
+            (data_rhs,(nodes,)) = self.rhs
+            np.add.at(rhs, nodes, data_rhs)
         return sys,rhs
 
-    def get_system(self):
+    def get_system(self,sparse_rhs=False):
         """Function to get the whole system to solve as coo_matrix
+        Parameters
+        ----------
+        sparse_rhs : bool
+            whether to return the second member as a sparse vector
 
         Returns
         -------
@@ -372,20 +386,28 @@ class TemporalSystemBuilder():
             img part of the system (need to be multiplyied by j.omega for frequency studies)
         rhs: np.array
         """
-        sys1 = coo_matrix(self.S1,shape=(self.number_intensities+self.size+self.source_count,self.number_intensities+self.size+self.source_count))
-        sys2 = coo_matrix(self.S2,shape=(self.number_intensities+self.size+self.source_count,self.number_intensities+self.size+self.source_count))
-        rhs = np.zeros(self.number_intensities+self.size+self.source_count)
-        (data_rhs,(nodes,)) = self.rhs
-        np.add.at(rhs, nodes, data_rhs)
+        size = self.number_intensities+self.size+self.source_count
+        sys1 = coo_matrix(self.S1,shape=(size,size))
+        sys2 = coo_matrix(self.S2,shape=(size,size))
+        if sparse_rhs:
+            (data_rhs,(nodes,)) = self.rhs
+            rhs = coo_matrix((data_rhs,(nodes,np.zeros_like(nodes,dtype=int))),shape=(size,1))
+            rhs.sum_duplicates()
+        else:
+            rhs = np.zeros(size)
+            (data_rhs,(nodes,)) = self.rhs
+            np.add.at(rhs, nodes, data_rhs)
         return sys1,sys2,rhs
 
-    def get_frequency_system(self,omega):
+    def get_frequency_system(self,omega,sparse_rhs=False):
         """Function to get the complex matrix for frequency studies
 
         Parameters
         ----------
         omega : float
             pulsation of the system
+        sparse_rhs : bool
+            whether to return the second member as a sparse vector
 
         Returns
         -------
@@ -394,31 +416,9 @@ class TemporalSystemBuilder():
         rhs: np.array
             right hand side of the system
         """
-        sys1,sys2,rhs = self.get_system()
+        sys1,sys2,rhs = self.get_system(sparse_rhs=sparse_rhs)
         return sys1+1j*omega*sys2,rhs
 
-    def get_frequency_system_all_omegas(self,omegas):
-        """Builds a big system for solving once for all all frequencies given
-        once this system has been solved, you need to reshape the output of the system with batches of size A.shape[0]//len(omegas)
-        to get the output for each omegas
-
-        Parameters
-        ----------
-        omegas : list(float)
-            iterable that has a __len__ function that oontains all values of omega to compute
-
-        Returns
-        -------
-        A :  coo_matrix, dtype=complex
-            system containing all the frequencies given in omegas
-        RHS : np.array
-            second member for the system A
-
-        """
-        sys1,sys2,rhs = self.get_system()
-        A = block_diag([sys1+1j*omega*sys2 for omega in omegas])
-        RHS = np.tile(rhs,(len(omegas),))
-        return A,RHS
 
     def build_intensity_and_voltage_from_vector(self,sol):
         """Utility function to reshape the solution of frequency studies or temporal studies
