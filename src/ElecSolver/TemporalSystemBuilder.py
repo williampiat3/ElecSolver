@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from scipy.sparse import coo_matrix, block_diag
+from scipy.sparse import coo_matrix, block_diag, coo_array
 from .utils import SolutionTemporal
 
 class TemporalSystemBuilder():
@@ -363,7 +363,7 @@ class TemporalSystemBuilder():
         sys = coo_matrix(self.S_init,shape=(size,size))
         if sparse_rhs:
             (data_rhs,(nodes,)) = self.rhs
-            rhs = coo_matrix((data_rhs,(nodes,np.zeros_like(nodes,dtype=int))),shape=(size,1))
+            rhs = coo_array((data_rhs,(nodes,)),shape=(size,))
             rhs.sum_duplicates()
         else:
             rhs = np.zeros(size)
@@ -391,7 +391,7 @@ class TemporalSystemBuilder():
         sys2 = coo_matrix(self.S2,shape=(size,size))
         if sparse_rhs:
             (data_rhs,(nodes,)) = self.rhs
-            rhs = coo_matrix((data_rhs,(nodes,np.zeros_like(nodes,dtype=int))),shape=(size,1))
+            rhs = coo_array((data_rhs,(nodes,)),shape=(size,))
             rhs.sum_duplicates()
         else:
             rhs = np.zeros(size)
