@@ -33,6 +33,7 @@ Its main goal is to provide a friendly Python interface for simulating analog el
       - [Example](#example-1)
   - [Solver suggestions](#solver-suggestions)
   - [Extra uses: Hydraulic or Thermal system modeling](#extra-uses-hydraulic-or-thermal-system-modeling)
+  - [Netlist import feature](#netlist-import-feature)
 
 ## How to install
 For now this package is distributed on pypi and can be installed using pip and conda/mamba
@@ -285,3 +286,78 @@ print("Pressures in the system:", potentials)
 ## get the flux passing through the system
 print("Debit through the system",solution.intensities_sources[0])
 ```
+## Netlist import feature
+
+A new class, named NetlistParser allows importing passive netlist and building a TemporalSystem instance.
+Solving the system can then be performed like any other example above.
+
+```python
+"""
+*test netlist for python solver square.net
+Iin 0 1 PWL(0 0 0.000000001 10)
+L0 1 3 0.1
+L1 2 0 0.1
+R1 1 0 1
+R2 2 3 1
+c2 1 2 2
+c3 0 3 2
+.tran 0 4 0 0.08
+.end
+"""
+from scipy.sparse.linalg import spsolve
+import matplotlib.pyplot as plt
+from ElecSolver import NetlistParser
+
+parser = NetlistParser("square.net")
+parser.map_netlist()
+node_zero = parser.node_map["0"]
+node_one =  parser.node_map["1"]
+
+elec_sys=parser.generate_temporal_system()
+## Seting ground at point 0
+elec_sys.set_ground(node_zero)
+## Build second member
+elec_sys.build_system()
+# Set 10 A injection entering in node 1 and exiting in node 0
+elec_sys.build_second_member_intensity(10, node_one, node_zero)
+# getting initial condition system
+S_i,b = elec_sys.get_init_system()
+# initial condition
+sol = spsolve(S_i.tocsr(),b)
+# get system (S1 is real part, S2 derivative part)
+S1,S2,rhs = elec_sys.get_system()
+
+## Solving using euler implicit scheme
+dt=0.08
+steps = 50
+vals_res1 = []
+vals_res2 = []
+vals_L1 = []
+voltage_src = []
+
+R1_index = list(parser.resistors.keys()).index("R1")
+R2_index = list(parser.resistors.keys()).index("R2")
+L1_index = list(parser.inductors.keys()).index("L1")
+
+
+for i in range(steps):
+    temporal_response = elec_sys.build_intensity_and_voltage_from_vector(sol)
+    vals_res1.append(temporal_response.intensities_res[R1_index])
+    vals_res2.append(temporal_response.intensities_res[R2_index])
+    vals_L1.append(temporal_response.intensities_coil[L1_index])
+    voltage_src.append(temporal_response.potentials[node_one]-temporal_response.potentials[node_zero])
+    ## implicit euler time iterations
+    sol = spsolve(S2+dt*S1,b*dt+S2@sol)
+
+
+plt.xlabel("Time")
+plt.ylabel("Intensity")
+plt.plot(arange(steps, dtype=float)*dt, vals_res1, label="intensity res 1")
+plt.plot(arange(steps, dtype=float)*dt, vals_res2, label="intensity res 2")
+plt.plot(arange(steps, dtype=float)*dt, vals_L1, label="intensity L1")
+plt.plot(arange(steps, dtype=float)*dt, voltage_src, label="V(1-0)") # equal to I(R1)
+
+plt.legend()
+plt.savefig("intensities_res.png")
+```
+
