@@ -106,7 +106,7 @@ class NetlistParser():
                  for m in re.findall(self.REALCOUPLING_PATTERN, data, re.MULTILINE)}
         self.params = {m[0]: m[1]
                 for m in re.findall(self.PARAM_PATTERN, data, re.MULTILINE)}
-        
+
 
 
     def _parse_si_value(self, value_str):
@@ -130,7 +130,7 @@ class NetlistParser():
         """
         try:
             return float(value_str)
-        except ValueError: 
+        except ValueError:
             pass
         if value_str.startswith("{") and value_str.endswith("}"):
             return self._parse_si_value(self.params[value_str[1:-1]])
@@ -179,7 +179,7 @@ class NetlistParser():
                 self.dipole_map[dipole] = {"nodes":[self.node_map[component[dipole]['n1']],
                                           self.node_map[component[dipole]['n2']]],
                                           "value":self._parse_si_value(component[dipole]['value'])}
-                
+
     def _map_couplings(self):
         """
         Create a mapping of coupling names to unique integers nodes.
@@ -236,7 +236,7 @@ class NetlistParser():
             indexes = concatenate((indexes, [[nodes[0]],[nodes[1]]]), axis=1)
             values = concatenate((values, [value]), axis=0)
         return indexes, values
-    
+
     def _fill_array_coupling(self,indexes, values, coupling_map):
         """
         Convert dipole coupling into a format compatible with elecsolve.
@@ -279,28 +279,13 @@ class NetlistParser():
         coords_mutual, data_mutual = array([[],[]], dtype=int), array([],dtype=float)
         res_mutuals_coords,res_mutuals_data = array([[],[]], dtype=int), array([],dtype=float)
 
-        index_res, resistors = self._fill_array_circuit(index_res, resistors, self.resistors) 
-        index_coils, coils_data = self._fill_array_circuit( index_coils, coils_data, self.inductors) 
-        capa_coords, capa_data = self._fill_array_circuit(capa_coords, capa_data, self.capacitors) 
+        index_res, resistors = self._fill_array_circuit(index_res, resistors, self.resistors)
+        index_coils, coils_data = self._fill_array_circuit( index_coils, coils_data, self.inductors)
+        capa_coords, capa_data = self._fill_array_circuit(capa_coords, capa_data, self.capacitors)
 
         coords_mutual, data_mutual = self._fill_array_coupling(coords_mutual, data_mutual , self.coupling_map)
         res_mutuals_coords,res_mutuals_data = self._fill_array_coupling(res_mutuals_coords,res_mutuals_data, self.real_coupling_map)
-        
+
         elec_sys = TemporalSystemBuilder(index_coils,coils_data,index_res,resistors,capa_coords,capa_data,coords_mutual,data_mutual,res_mutuals_coords,res_mutuals_data)
 
         return elec_sys
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
