@@ -1,7 +1,7 @@
 import re
 import os
 from numpy import sqrt, array, concatenate, arange
-from TemporalSystemBuilder import TemporalSystemBuilder
+from .TemporalSystemBuilder import TemporalSystemBuilder
 
 class NetlistParser():
     """
