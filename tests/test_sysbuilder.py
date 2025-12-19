@@ -131,10 +131,9 @@ def test_parallel_res():
     electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
 
     # Solve the system
-    sys, b = electric_sys.get_system()
+    sys, b = electric_sys.get_system(sparse_rhs=True)
     ## plotting the linear system
-    print(sys.todense())
-    print(b)
+
 
     sol = spsolve(sys.tocsr(), b)
     intensities, potentials,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)

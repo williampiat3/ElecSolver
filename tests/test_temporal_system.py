@@ -322,7 +322,7 @@ def freq_simulation():
     for f in fvect:
         frequency_system,_ = (sys1+1j*np.pi*2*f*sys2).tocoo(),rhs_ref
         ctx.factor(frequency_system,reuse_analysis=True)
-        sol = ctx.solve(rhs_ref).ravel()
+        sol = ctx.solve(rhs_ref)
         currents_coil,currents_res,currents_capa,voltages,current_source= elec_sys.build_intensity_and_voltage_from_vector(sol)
 
 def test_hydraulic():
