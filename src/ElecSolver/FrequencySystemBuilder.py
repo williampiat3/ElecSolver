@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix,coo_array
 from .utils import SolutionFrequency
 
 
@@ -129,8 +129,13 @@ class FrequencySystemBuilder():
         self.system = (data,(i_s.astype(int),j_s.astype(int)))
         return self.system
 
-    def get_system(self):
+    def get_system(self,sparse_rhs=False):
         """Function to get the system
+        Parameters:
+        -------
+        sparse_rhs: bool, optionnal
+            Whether to return the second member as a sparse.coo_array
+
         Returns
         -------
         sys: scipy.coo_matrix
@@ -139,10 +144,16 @@ class FrequencySystemBuilder():
             Second member of the system
         """
         (data_rhs,(nodes,)) = self.rhs
-        (data,(i_s,j_s)) = self.system
         sys = coo_matrix(self.system)
-        rhs = np.zeros(self.number_intensities+self.size+self.source_count)
-        np.add.at(rhs, nodes, data_rhs)
+        size =  sys.shape[0]
+        if sparse_rhs:
+            (data_rhs,(nodes,)) = self.rhs
+            rhs = coo_array((data_rhs,(nodes,)),shape=(size,))
+            rhs.sum_duplicates()
+        else:
+            rhs = np.zeros(size)
+            (data_rhs,(nodes,)) = self.rhs
+            np.add.at(rhs, nodes, data_rhs)
         return sys,rhs
 
     def build_second_member_intensity(self,intensity,input_node,output_node):
