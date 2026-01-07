@@ -155,7 +155,7 @@ def test_one_shot_temporal():
     ctx = Context()
     ctx.set_matrix(S)
     ctx.analyze()
-    ctx.factor()
+    ctx.factor(reuse_analysis=True)
     x = ctx.solve(RHS)
 
     ## adding initial conditions
@@ -246,7 +246,7 @@ def test_big_grid():
 
     ctx.set_matrix(S_i)
     ctx.analyze()
-    ctx.factor(ordering = "scotch")
+    ctx.factor(reuse_analysis=True,ordering = "scotch")
     sol = ctx.solve(b)
 
 
@@ -259,7 +259,7 @@ def test_big_grid():
 
     ctx.set_matrix(A)
     ctx.analyze()
-    ctx.factor(ordering = "scotch")
+    ctx.factor(reuse_analysis=True,ordering = "scotch")
 
     for i in range(100):
         b = B+S2@sol
