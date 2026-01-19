@@ -315,7 +315,7 @@ def freq_simulation():
     elec_sys.build_system()
     elec_sys.build_second_member_intensity(10,1,0)
     sys1,sys2,rhs_ref = elec_sys.get_system(sparse_rhs=True)
-    fake_sys,rhs = (sys1+10j*sys2).tocoo(),rhs_ref
+    fake_sys,rhs = (sys1+1j*sys2).tocoo(),rhs_ref
     ctx = Context()
     ctx.set_matrix(fake_sys)
     ctx.analyze()
