@@ -10,7 +10,17 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
-Its main goal is to provide a friendly Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in scalability—handling millions of nodes and components, provided that you possess sufficient computational resources.
+
+Its main goal is to provide a friendly Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
+
+
+> [!IMPORTANT]
+> ElecSolver has been designed with the following specifications in mind:
+> - The time needed for building the linear system must be negligible compared to the time needed for solving it.
+> - Handle natively inductive mutuals and resistive mutuals
+> - Handle as many coupled electric systems that one wants.
+> - Deal with lonely nodes and lonely edges in the electric graph: the problem can be well posed and thus solved.
+
 
 
 > [!NOTE]
@@ -44,10 +54,11 @@ or
 ```
 conda install elecsolver
 ```
-For solving the linear systems we advise using MUMPS through python-mumps on linux that can be installed via conda
+For solving the linear systems we advise using MUMPS through `python-mumps` available for linux, macOS and Windows. It can be installed via conda:
 ```
 conda install python-mumps
 ```
+
 
 
 ## Components
