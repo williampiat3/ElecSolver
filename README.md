@@ -183,7 +183,7 @@ res_mutuals_data = np.array([],dtype=float)
 
 ## initializing system
 elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-## Seting ground at point 0
+## Setting ground at point 0
 elec_sys.set_ground(0)
 ## Add source
 elec_sys.add_current_source(10,1,0)
@@ -268,7 +268,7 @@ res_mutuals_data = np.array([],dtype=float)
 
 ## initializing system
 hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-## Seting ground at point 0
+## Setting ground at point 0
 hydraulic_sys.set_ground(0)
 ## enforcing a pressure delta of 10 Pa
 hydraulic_sys.add_voltage_source(10,1,0)
@@ -319,7 +319,7 @@ node_zero = parser.node_map["0"]
 node_one =  parser.node_map["1"]
 
 elec_sys=parser.generate_temporal_system()
-## Seting ground at point 0
+## Setting ground at point 0
 elec_sys.set_ground(node_zero)
 # Set 10 A injection entering in node 1 and exiting in node 0
 elec_sys.add_current_source(10, node_one, node_zero)
