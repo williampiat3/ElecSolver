@@ -101,9 +101,11 @@ electric_sys = FrequencySystemBuilder(
 # Set ground
 # 2 values because one for each subsystem
 electric_sys.set_ground(0, 3)
+# Add source (Current source here)
+electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 # Building system
 electric_sys.build_system()
-electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
+
 
 # Get and solve the system
 sys, b = electric_sys.get_system()
@@ -183,9 +185,11 @@ res_mutuals_data = np.array([],dtype=float)
 elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
 ## Seting ground at point 0
 elec_sys.set_ground(0)
+## Add source
+elec_sys.add_current_source(10,1,0)
 ## Build second member
 elec_sys.build_system()
-elec_sys.build_second_member_intensity(10,1,0)
+
 # getting initial condition system
 S_i,b = elec_sys.get_init_system()
 # initial condition
@@ -266,10 +270,11 @@ res_mutuals_data = np.array([],dtype=float)
 hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
 ## Seting ground at point 0
 hydraulic_sys.set_ground(0)
+## enforcing a pressure delta of 10 Pa
+hydraulic_sys.add_voltage_source(10,1,0)
 ## Build second member
 hydraulic_sys.build_system()
-## enforcing a pressure delta of 10 Pa
-hydraulic_sys.build_second_member_tension(10,1,0)
+
 # get system (S1 is real part, S2 derivative part)
 # the problem is only resitive thus S2 =0
 S1,S2,rhs = hydraulic_sys.get_system()
@@ -316,10 +321,10 @@ node_one =  parser.node_map["1"]
 elec_sys=parser.generate_temporal_system()
 ## Seting ground at point 0
 elec_sys.set_ground(node_zero)
+# Set 10 A injection entering in node 1 and exiting in node 0
+elec_sys.add_current_source(10, node_one, node_zero)
 ## Build second member
 elec_sys.build_system()
-# Set 10 A injection entering in node 1 and exiting in node 0
-elec_sys.build_second_member_intensity(10, node_one, node_zero)
 # getting initial condition system
 S_i,b = elec_sys.get_init_system()
 # initial condition
