@@ -98,11 +98,11 @@ electric_sys = FrequencySystemBuilder(
     mutuals_data
 )
 
+# Add source (Current source here)
+electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 # Set ground
 # 2 values because one for each subsystem
 electric_sys.set_ground(0, 3)
-# Add source (Current source here)
-electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 # Building system
 electric_sys.build_system()
 
@@ -183,10 +183,10 @@ res_mutuals_data = np.array([],dtype=float)
 
 ## initializing system
 elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
-## Setting ground at point 0
-elec_sys.set_ground(0)
 ## Add source
 elec_sys.add_current_source(10,1,0)
+## Setting ground at point 0
+elec_sys.set_ground(0)
 ## Build second member
 elec_sys.build_system()
 
@@ -223,11 +223,11 @@ This outputs the following graph that displays the intensity passing through the
 ## Solver suggestions
 
 - For **small or moderately sized systems**, the built-in `scipy.sparse.linalg.spsolve` is effective.
-- For **large-scale temporal problems**, consider using **MUMPS** (via `pyMUMPS`).
+- For **large-scale temporal problems**, consider using **MUMPS** (via `python-mumps`).
   MUMPS is more efficient when only the second member (`b`) changes during time-stepping.
 
 > [!TIP]
-> See example `tests.test_temporal_system` in the tests on how to use pyMUMPS for solving the resulting system efficiently.
+> See example `tests.test_temporal_system` in the tests on how to use `python-mumps` for solving the resulting system efficiently.
 
 
 ## Extra uses: Hydraulic or Thermal system modeling
@@ -268,10 +268,10 @@ res_mutuals_data = np.array([],dtype=float)
 
 ## initializing system
 hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+## Enforcing a pressure delta of 10 Pa
+hydraulic_sys.add_voltage_source(10,1,0)
 ## Setting ground at point 0
 hydraulic_sys.set_ground(0)
-## enforcing a pressure delta of 10 Pa
-hydraulic_sys.add_voltage_source(10,1,0)
 ## Build second member
 hydraulic_sys.build_system()
 
@@ -319,10 +319,10 @@ node_zero = parser.node_map["0"]
 node_one =  parser.node_map["1"]
 
 elec_sys=parser.generate_temporal_system()
-## Setting ground at point 0
-elec_sys.set_ground(node_zero)
 # Set 10 A injection entering in node 1 and exiting in node 0
 elec_sys.add_current_source(10, node_one, node_zero)
+## Setting ground at point 0
+elec_sys.set_ground(node_zero)
 ## Build second member
 elec_sys.build_system()
 # getting initial condition system
