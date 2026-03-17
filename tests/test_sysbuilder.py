@@ -16,10 +16,11 @@ def test_sys_general_coo_build():
 
 
     electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys.add_voltage_source(voltage=10,input_node=1,output_node=0)
     # setting the ground
     electric_sys.set_ground(0)
     electric_sys.build_system()
-    electric_sys.build_second_member_tension(tension=10,input_node=1,output_node=0)
+
     ## Need to evaluate the system because it was altered when calling the second member
     sys,b = electric_sys.get_system()
     print(sys.todense())
@@ -41,17 +42,18 @@ def test_sys_general_mutual_intensity():
 
 
     electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys.add_current_source(intensity=10,input_node=1,output_node=0)
     # setting the mass
     electric_sys.set_ground(0,3)
     # Build system and second member
     electric_sys.build_system()
-    electric_sys.build_second_member_intensity(intensity=10,input_node=1,output_node=0)
+
 
     sys,b = electric_sys.get_system()
     sol = spsolve(sys.tocsr(),b)
     intensities,potentials,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
-    ## We see a tension appearing on the lonely coil
+    ## We see a voltage appearing on the lonely coil
     print(potentials[3]-potentials[4])
 
 
@@ -71,11 +73,12 @@ def test_res_grid():
 
 
     electric_sys = FrequencySystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutuals_coords=mutual_coords,mutuals_data=mutual_data)
+    electric_sys.add_current_source(intensity=2,input_node=0,output_node=24)
+    electric_sys.add_current_source(intensity=2,input_node=42,output_node=24)
+    electric_sys.add_current_source(intensity=2,input_node=48,output_node=24)
+    electric_sys.add_current_source(intensity=2,input_node=6,output_node=24)
     electric_sys.set_ground(0)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=24)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=42,output_node=24)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=48,output_node=24)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=6,output_node=24)
+
 
     ## building system
     electric_sys.build_system()
@@ -124,11 +127,12 @@ def test_parallel_res():
         mutuals_coords,
         mutuals_data
     )
+    electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 
     # Set node ground
     electric_sys.set_ground(0, 3)
     electric_sys.build_system()
-    electric_sys.build_second_member_intensity(intensity=10, input_node=2, output_node=0)
+
 
     # Solve the system
     sys, b = electric_sys.get_system(sparse_rhs=True)
@@ -138,7 +142,7 @@ def test_parallel_res():
     sol = spsolve(sys.tocsr(), b)
     intensities, potentials,_ = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
-    ## We see a tension appearing on the lonely coil (between node 3 and 4)
+    ## We see a voltage appearing on the lonely coil (between node 3 and 4)
     print(potentials[3]-potentials[4])
     assert intensities[2]== -intensities[4]
 

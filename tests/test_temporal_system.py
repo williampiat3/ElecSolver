@@ -27,14 +27,14 @@ def test_temporal():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
-    elec_sys.build_second_member_intensity(10,1,0)
+
     S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
     rhs = elec_sys.rhs
     S1 = coo_matrix(S1,shape=(10,10))
     S2 = coo_matrix(S2,shape=(10,10))
-
 
     S_i = coo_matrix(S_i)
     b = np.zeros(S_i.shape[0])
@@ -69,6 +69,7 @@ def test_temporal():
     # plt.savefig("test")
     # plt.clf()
 
+
 def test_temporal2():
     ## Simple tetrahedron
     res_coords  = np.array([[0,2],[1,3]],dtype=int)
@@ -89,11 +90,12 @@ def test_temporal2():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
-    elec_sys.build_second_member_intensity(10,1,0)
     S1,S2,S_i = elec_sys.S1,elec_sys.S2,elec_sys.S_init
     rhs = elec_sys.rhs
+
     S1 = coo_matrix(S1,shape=(10,10))
     S2 = coo_matrix(S2,shape=(10,10))
 
@@ -142,9 +144,10 @@ def test_one_shot_temporal():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
-    elec_sys.build_second_member_intensity(10,1,0)
+
     S_i,b = elec_sys.get_init_system()
     sol = spsolve(S_i.tocsr(),b)
     S1,S2,rhs = elec_sys.get_system()
@@ -173,7 +176,7 @@ def test_one_shot_temporal():
     # plt.savefig("test")
     # plt.clf()
 
-def test_tension():
+def test_voltage():
     ## Simple tetrahedron
     res_coords  = np.array([[0,2],[1,3]],dtype=int)
     res_data = np.array([1,1],dtype=float)
@@ -193,9 +196,9 @@ def test_tension():
     res_mutuals_data = np.array([],dtype=float)
 
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_voltage_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
-    elec_sys.build_second_member_tension(10,1,0)
     S_i,b = elec_sys.get_init_system()
     sol = spsolve(S_i.tocsr(),b)
 
@@ -230,12 +233,13 @@ def test_big_grid():
 
 
     electric_sys = TemporalSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)
+    electric_sys.add_current_source(intensity=2,input_node=0,output_node=center)
+    electric_sys.add_current_source(intensity=2,input_node=size-1,output_node=center)
+    electric_sys.add_current_source(intensity=2,input_node=size**2-1,output_node=center)
+    electric_sys.add_current_source(intensity=2,input_node=size**2-size,output_node=center)
     electric_sys.set_ground(0)
 
-    electric_sys.build_second_member_intensity(intensity=2,input_node=0,output_node=center)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=size-1,output_node=center)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=size**2-1,output_node=center)
-    electric_sys.build_second_member_intensity(intensity=2,input_node=size**2-size,output_node=center)
+
 
     ## building system
     electric_sys.build_system()
@@ -311,9 +315,10 @@ def freq_simulation():
 
     fvect = [10,20,100,1000]
     elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
-    elec_sys.build_second_member_intensity(10,1,0)
+
     sys1,sys2,rhs_ref = elec_sys.get_system(sparse_rhs=True)
     fake_sys,rhs = (sys1+1j*sys2).tocoo(),rhs_ref
     ctx = Context()
@@ -346,12 +351,13 @@ def test_hydraulic():
 
     ## initializing system
     hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    ## enforcing a pressure delta of 10 Pa
+    hydraulic_sys.add_voltage_source(10,1,0)
     ## Seting ground at point 0
     hydraulic_sys.set_ground(0)
     ## Build second member
     hydraulic_sys.build_system()
-    ## enforcing a pressure delta of 10 Pa
-    hydraulic_sys.build_second_member_tension(10,1,0)
+
     # get system (S1 is real part, S2 derivative part)
     # the problem is only resitive thus S2 =0
     S1,S2,rhs = hydraulic_sys.get_system()
@@ -368,11 +374,47 @@ def test_hydraulic():
     ## get the flux passing through the source
     print("Debit through the system",solution.intensities_sources[0])
 
+def test_lonely_nodes():
+    ## Test to check that the system handler detect the lonely node and handles it with
+    ## Defining resistances
+    res_coords  = np.array([[0],[1]],dtype=int)
+    res_data = np.array([1],dtype=float)
+    ## Defining coils
+    coil_coords  = np.array([[0],[3]],dtype=int)
+    coil_data = np.array([0.1],dtype=float)
+    ## Defining capacities
+    capa_coords = np.array([[1],[3]],dtype=int)
+    capa_data = np.array([2],dtype=float)
+
+    ## Defining empty mutuals here
+    mutuals_coords=np.array([[],[]],dtype=int)
+    mutuals_data = np.array([],dtype=float)
+
+
+    res_mutuals_coords=np.array([[],[]],dtype=int)
+    res_mutuals_data = np.array([],dtype=float)
+
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys.add_current_source(10,1,0)
+    elec_sys.set_ground(0)
+    elec_sys.build_system()
+    S_i,b = elec_sys.get_init_system()
+    sol = spsolve(S_i.tocsr(),b)
+    print(elec_sys.build_intensity_and_voltage_from_vector(sol))
+    S1,S2,b = elec_sys.get_system()
+    dt=0.08
+    for i in range(50):
+        currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sol)
+        sol = spsolve(S2+dt*S1,b*dt+S2@sol)
+    currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sol)
+    print(voltages)
+
 if __name__ == "__main__":
+    test_lonely_nodes()
     test_hydraulic()
     freq_simulation()
     test_big_grid()
     test_one_shot_temporal()
-    test_tension()
+    test_voltage()
     test_temporal()
     test_temporal2()
