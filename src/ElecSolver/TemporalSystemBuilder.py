@@ -66,6 +66,8 @@ class TemporalSystemBuilder():
         We test it with networkx and build some internal variables that are necessary for the system building
         In case you want to change the connectivity graph of your system you need to rerun the analysis to make check wether the topology changed or not
         """
+        if self.voltage_sources_data.shape==0 and self.current_sources_data.shape==0:
+            raise RuntimeError("The system does not have any sources (voltage or current) defined before running the graph analysis. Please define all your sources before calling set_ground, build_system or graph_analysis")
 
         self.all_coords = np.concatenate((self.coil_coords,self.res_coords,self.capa_coords,self.voltage_sources_coords),axis=1)
         all_points = np.unique(self.all_coords)
