@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix, block_diag, coo_array
 from .utils import SolutionTemporal
+import warnings
 
 class TemporalSystemBuilder():
     def __init__(self,coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,inductive_mutuals_coords,inductive_mutuals_data,res_mutual_coords,res_mutual_data):
@@ -72,10 +73,10 @@ class TemporalSystemBuilder():
         self.all_coords = np.concatenate((self.coil_coords,self.res_coords,self.capa_coords,self.voltage_sources_coords),axis=1)
         all_points = np.unique(self.all_coords)
         if all_points.shape != np.max(self.all_coords)+1:
-            print("Warning: There is one or multiple lonely nodes please clean your impedence graph")
+            warnings.warn("Warning: There is one or multiple lonely nodes please clean your impedence graph")
 
         if self.analysed:
-            print("Warning: analysis was already performed: grounds will be reasigned")
+            warnings.warn("Warning: analysis was already performed: grounds will be reasigned")
 
         self.all_impedences = np.concatenate([self.coil_data,self.res_data,self.capa_data,self.voltage_sources_data],axis=0)
 
@@ -349,7 +350,7 @@ class TemporalSystemBuilder():
 
         """
         if self.analysed == True:
-            print("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
+            warnings.warn("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
         self.voltage_sources_coords = np.append(self.voltage_sources_coords,np.array([[input_node],[output_node]]),axis=1)
         self.voltage_sources_data = np.append(self.voltage_sources_data,np.array([voltage]))
         self.source_count+=1

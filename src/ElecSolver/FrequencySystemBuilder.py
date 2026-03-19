@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix,coo_array
 from .utils import SolutionFrequency
+import warnings
 
 
 class FrequencySystemBuilder():
@@ -40,10 +41,10 @@ class FrequencySystemBuilder():
         self.all_coords = np.concatenate((self.impedence_coords,self.voltage_sources_coords),axis=1)
         all_points = np.unique(self.all_coords)
         if all_points.shape != np.max(self.all_coords)+1:
-            print("Warning: There is one or multiple lonely nodes please clean your impedence graph")
+            warnings.warn("Warning: There is one or multiple lonely nodes please clean your impedence graph")
 
         if self.analysed:
-            print("Warning: analysis was already performed: grounds will be reasigned")
+            warnings.warn("Warning: analysis was already performed: grounds will be reasigned")
 
         self.all_impedences = np.concatenate([self.impedence_data,self.voltage_sources_data],axis=0)
 
@@ -294,7 +295,7 @@ class FrequencySystemBuilder():
 
         """
         if self.analysed == True:
-            print("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
+            warnings.warn("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
         self.voltage_sources_coords = np.append(self.voltage_sources_coords,np.array([[input_node],[output_node]]),axis=1)
         self.voltage_sources_data = np.append(self.voltage_sources_data,np.array([voltage]))
         self.source_count+=1
