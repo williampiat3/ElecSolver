@@ -73,6 +73,10 @@ class TemporalSystemBuilder():
         all_points = np.unique(self.all_coords)
         if all_points.shape != np.max(self.all_coords)+1:
             print("Warning: There is one or multiple lonely nodes please clean your impedence graph")
+
+        if self.analysed:
+            print("Warning: analysis was already performed: grounds will be reasigned")
+
         self.all_impedences = np.concatenate([self.coil_data,self.res_data,self.capa_data,self.voltage_sources_data],axis=0)
 
         # actual number of node in the system
@@ -88,7 +92,14 @@ class TemporalSystemBuilder():
         self.list_of_subgraphs = [ list(sub) for sub in nx.connected_components(self.graph)]
         self.number_of_subsystems = len(self.list_of_subgraphs)
         ## location of ground
-        self.affected_potentials = [-1]*self.number_of_subsystems
+        ## If analysis was already performed we take the previous grounds and try to reassign them to the system
+        if self.analysed:
+            grounds_placeholder = self.affected_potentials
+            self.affected_potentials = self.affected_potentials[:min(self.number_of_subsystems,len(self.affected_potentials))]
+            self.set_ground(*grounds_placeholder)
+        else:
+            self.affected_potentials = [-1]*self.number_of_subsystems
+
         ## by default remove 1 node equation per subsytem otherwise system is singular
         self.deleted_equation_current = [subsystem[0] for subsystem in self.list_of_subgraphs]
         ## shifter for intensities equations
@@ -115,7 +126,7 @@ class TemporalSystemBuilder():
         for index in args:
             for pivot,subsystem in enumerate(self.list_of_subgraphs):
                 if index in subsystem:
-                    if self.affected_potentials[pivot]!=-1:
+                    if self.affected_potentials[pivot]!=-1 and self.affected_potentials[pivot]!=index:
                         print(f"Subsystem {pivot} already add a ground, reaffecting the value")
                     self.affected_potentials[pivot]=index
                     break
@@ -136,7 +147,7 @@ class TemporalSystemBuilder():
         This function builds 3 matrixes:
         S1 which is the real part of the system
         S2 which is the derivative part of the system
-        S_init which is the system that needs to be solved for having initial conditions departing from null conditions
+        S_init which is the system that needs to be solved for having initial conditions
         """
         ## Running graph analysis if not done
         if not self.analysed:
@@ -337,6 +348,8 @@ class TemporalSystemBuilder():
             node from where the voltage is enforced
 
         """
+        if self.analysed == True:
+            print("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
         self.voltage_sources_coords = np.append(self.voltage_sources_coords,np.array([[input_node],[output_node]]),axis=1)
         self.voltage_sources_data = np.append(self.voltage_sources_data,np.array([voltage]))
         self.source_count+=1
