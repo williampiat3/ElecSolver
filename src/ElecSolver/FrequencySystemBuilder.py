@@ -113,8 +113,15 @@ class FrequencySystemBuilder():
 
     def build_system(self):
         """Building sytem assuming that data was given as COO matrices
-        Fully vectorized for best performance
-        it is faster but less understandable
+        This function builds the complex system in a coo format that can be solved by any complex sparse solver.
+
+        Let N be the number of nodes, M the number of impedences, k be be the number of subsystems, s the number of voltage sources, the size of the system is N+M+s.
+        The system is built with M+s intensities as first unknowns and N potentials as second unknowns
+        The equations are ordered as follows:
+        - node laws (N-k equations)
+        - kirchoff laws (M equations)
+        - ground equations (k equations)
+        - voltage sources equations (s equations)
         """
         ## Running graph analysis if not done
         if not self.analysed:

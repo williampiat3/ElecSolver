@@ -120,6 +120,10 @@ class TemporalSystemBuilder():
     def set_ground(self,*args):
         """Function to affect a ground to subsystems
         If the system already has a ground provided then a warning is displayed and ground reaffected
+        Parameters
+        ----------
+        *args: list of int
+            Nodes to affect as ground, the number of nodes provided should be superior or equal to the number of subsystems, if not the remaining subsystems will be affected to the first nodes
         """
         ## Running graph analysis if not done
         if not self.analysed:
@@ -146,9 +150,22 @@ class TemporalSystemBuilder():
     def build_system(self):
         """Building sytem assuming that data was given as coords / data tuples
         This function builds 3 matrixes:
-        S1 which is the real part of the system
-        S2 which is the derivative part of the system
-        S_init which is the system that needs to be solved for having initial conditions
+        - S1 which is the real part of the system
+        - S2 which is the derivative part of the system
+        - S_init which is the system that needs to be solved for having initial conditions
+
+        Let N be the number of nodes, M the number of impedences, k be be the number of subsystems, s the number of voltage sources, the size of the system is N+M+s.
+        Let U be the vector of unknowns of size N+M+s, it contains in order the M+s intensities and then the N potentials. Let rhs be the second member of the system containing current injections and voltage sources contributions.
+        The temporal system is then given by:
+        U_0 = S_init^{-1}.rhs
+        S1.U + S2.\dot{U} = rhs
+
+        The equations are ordered as follows:
+        - node laws (N-k equations)
+        - kirchoff laws (M equations)
+        - ground equations (k equations)
+        - voltage sources equations (s equations)
+
         """
         ## Running graph analysis if not done
         if not self.analysed:
