@@ -222,7 +222,7 @@ class FrequencySystemBuilder():
                         else:
                             continue
                     if not valid:
-                        raise IndexError("Nodes indicated do not belong to the same subsystem")
+                        raise IndexError(f"Nodes {input_node} and {output_node} do not belong to the same subsystem, can't create a current source between these two points")
 
 
         ## Building current injection
@@ -251,7 +251,7 @@ class FrequencySystemBuilder():
         Parameters:
         -------
         sparse_rhs: bool, optionnal
-            Whether to return the second member as a sparse.coo_array
+            Whether to return the second member as a sparse.coo_array (sparse rhs can be used efficiently by MUMPS)
 
         Returns
         -------

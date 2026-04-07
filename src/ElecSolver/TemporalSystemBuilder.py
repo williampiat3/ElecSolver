@@ -314,7 +314,7 @@ class TemporalSystemBuilder():
                         else:
                             continue
                     if not valid:
-                        raise IndexError("Nodes indicated do not belong to the same subsystem")
+                        raise IndexError(f"Nodes {input_node} and {output_node} do not belong to the same subsystem, can't create a current source between these two points")
 
 
         ## Building current injection
@@ -377,7 +377,7 @@ class TemporalSystemBuilder():
         Parameters
         ----------
         sparse_rhs : bool
-            whether to return the second member as a sparse vector
+            whether to return the second member as a sparse vector (sparse rhs can be used efficiently by MUMPS)
 
         Returns
         -------

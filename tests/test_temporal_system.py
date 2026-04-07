@@ -375,7 +375,7 @@ def test_hydraulic():
     print("Debit through the system",solution.intensities_sources[0])
 
 def test_lonely_nodes():
-    ## Test to check that the system handler detect the lonely node and handles it with
+    ## Test to check that the system handler detect the lonely node and handles it with a warning
     ## Defining resistances
     res_coords  = np.array([[0],[1]],dtype=int)
     res_data = np.array([1],dtype=float)
