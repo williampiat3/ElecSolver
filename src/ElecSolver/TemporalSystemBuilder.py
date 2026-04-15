@@ -158,7 +158,7 @@ class TemporalSystemBuilder():
         Let U be the vector of unknowns of size N+M+s, it contains in order the M+s intensities and then the N potentials. Let rhs be the second member of the system containing current injections and voltage sources contributions.
         The temporal system is then given by:
         U_0 = S_init^{-1}.rhs
-        S1.U + S2.\dot{U} = rhs
+        S1.U + S2.\\dot{U} = rhs
 
         The equations are ordered as follows:
         - node laws (N-k equations)
