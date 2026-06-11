@@ -11,7 +11,10 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The corresponding sparse linear system to solve
 
 
-Its main goal is to provide a friendly Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
+
+Its main goal is to provide a friendly Python interface for simulating and optimizing analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
+
+Although providing backpropagation of gradients for optimization purposes, ElecSolver is not an auto-differentiation library (and doesn't aim to be). It is rather a tool that can be used in a differentiable programming pipeline. You may use ElecSolver with any auto-differentiation library of your choice (Pytorch, Jax, Tensorflow...) as long as you wrap ElecSolver classes in these frameworks. We aim at keeping ElecSolver as simple as possible with a limited number of dependencies in order to keep it as flexible as possible.
 
 
 > [!IMPORTANT]
@@ -20,6 +23,7 @@ Its main goal is to provide a friendly Python interface for simulating analog el
 > - Handle natively inductive mutuals and resistive mutuals
 > - Handle as many coupled electric systems that one wants.
 > - Deal with lonely nodes and lonely edges in the electric graph: the problem can be well posed and thus solved.
+> - Allow backpropagation of gradients through the system for optimization purposes.
 
 
 
@@ -44,6 +48,10 @@ Its main goal is to provide a friendly Python interface for simulating analog el
   - [Solver suggestions](#solver-suggestions)
   - [Extra uses: Hydraulic or Thermal system modeling](#extra-uses-hydraulic-or-thermal-system-modeling)
   - [Netlist import feature](#netlist-import-feature)
+  - [Gradient backpropagation](#gradient-backpropagation)
+    - [Example of backpropagation of TemporalSystemBuilder](#example-of-backpropagation-of-temporalsystembuilder)
+    - [Example of backpropagation of FrequencySystemBuilder](#example-of-backpropagation-of-frequencysystembuilder)
+
 
 ## How to install
 For now this package is distributed on pypi and can be installed using pip and conda/mamba
@@ -74,6 +82,7 @@ This class handles **frequency-domain** analysis of linear electric systems.
 - Detects and couples multiple subsystems
 - Accepts arbitrary complex impedances and mutuals
 - Constructs sparse linear systems (COO format)
+- Allows backpropagation of gradients from the linear system to the parameters of the system for optimization purposes
 
 
 > [!TIP]
@@ -160,6 +169,7 @@ This class models **time-dependent** systems using resistors, capacitors, coils,
 - Detects and couples multiple subsystems
 - Accepts 3 dipole types: resistances, capacities and coils
 - Constructs sparse linear systems (COO format)
+- Allows backpropagation of gradients from the linear systems (plural! gradients from S_init, S1, S2 and rhs!) to the parameters of the system for optimization purposes
 
 #### Example
 
@@ -375,5 +385,118 @@ plt.plot(arange(steps, dtype=float)*dt, voltage_src, label="V(1-0)") # equal to 
 
 plt.legend()
 plt.savefig("intensities_res.png")
+```
+## Gradient backpropagation
+ElecSolver is basically a blackbox that takes as input the parameters of the system (impedences, mutuals, sources) and outputs the linear system to be solved leaving the choice of solver to the user.
+In order to allow optimization of the system ElecSolver now gives the possibility to backpropagate gradients from the linear system to the parameters of the system. This allows to use ElecSolver in a optimization loop where one wants to optimize the parameters of the system with gradient descent for instance.
+
+### Example of backpropagation of TemporalSystemBuilder
+We want to optimize the capacity values of the system in order to reach a target solution for the first time step.
+We can do this by backpropagating the gradients from the solution of the linear system to the capa_data array of the TemporalSystemBuilder instance.
+```python
+import numpy as np
+from scipy.sparse.linalg import spsolve
+from ElecSolver import TemporalSystemBuilder
+## Simple tetrahedron
+res_coords  = np.array([[0,2],[1,3]],dtype=int)
+res_data = np.array([1,1],dtype=float)
+
+coil_coords  = np.array([[1,0],[2,3]],dtype=int)
+coil_data = np.array([1,1],dtype=float)
+
+capa_coords = np.array([[1,2],[3,0]],dtype=int)
+capa_data = np.array([1,1],dtype=float)
+## The target solution we want to reach is the solution of the system when capa_data = np.array([0.1,1],dtype=float)
+
+## total impedance
+mutuals_coords=np.array([[],[]],dtype=int)
+mutuals_data = np.array([],dtype=float)
+
+
+res_mutuals_coords=np.array([[],[]],dtype=int)
+res_mutuals_data = np.array([],dtype=float)
+
+elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+elec_sys.add_current_source(10,1,0)
+elec_sys.set_ground(0)
+elec_sys.build_system()
+# Getting initial condition system
+S_i,rhs = elec_sys.get_init_system(sparse_rhs=True)
+S1,S2,rhs = elec_sys.get_system(sparse_rhs=True)
+sol_init =spsolve(S_i.tocsr(),rhs.todense())
+## Time iteration with euler implicit scheme for 1 timestep
+dt=0.8
+B = rhs*dt+S2@sol_init
+A = S2+dt*S1
+sol = spsolve(A,B)
+## Solution when capa_data = np.array([0.1,1],dtype=float) for first timestep
+sol_target = [ 3.24786325, -1.1965812,  -6.16809117,  0.61253561,  0.58404558, -2.63532764, 0., 6.16809117,  2.10826211,  1.4957265 ]
+for i in range(1000):
+
+    ## computing gradients
+    dB = 2*spsolve(A.T, sol - sol_target)
+    ## chain rule for gradients of capa_data (S2 appears twice in the computation graph)
+    dS2 = -( dB[S2.row]*sol[S2.col])+(dB[S2.row]*sol_init[S2.col])
+
+    ## Backpropagate gradients from dS2 to capa_data
+    gradients = elec_sys.backpropagate_gradients(dS2=dS2)
+
+    ## change the values of capa_data using gradient descent
+    elec_sys.capa_data = elec_sys.capa_data - 0.01*gradients.capa_data
+    ## After the update of capa_data we need to rebuild the system to update S1, S2 and rhs
+    elec_sys.build_system()
+    S1,S2,rhs = elec_sys.get_system(sparse_rhs=True)
+    ## recomputing solution with euler implicit scheme for 1 timestep
+    B = rhs*dt+S2@sol_init
+    A = S2+dt*S1
+    sol = spsolve(A,B)
+## Checking whether we converged to the right solution
+np.testing.assert_allclose(elec_sys.capa_data, np.array([0.1,1],dtype=float))
+```
+
+The function `backpropagate_gradients` of TemporalSystemBuilder allows to backpropagate gradients from `S_init`, `S1`, `S2` and `rhs`. See tests.test_gradients for more examples of backpropagation of gradients from different systems.
+
+### Example of backpropagation of FrequencySystemBuilder
+We want to optimize the value of a tension source in order to reach a target solution for the frequencial response of the system.
+```python
+import numpy as np
+from scipy.sparse.linalg import spsolve
+from ElecSolver import FrequencySystemBuilder
+
+## sparse python res matrix
+impedence_coords = np.array([[0,0,1],[1,2,2]],dtype=int)
+impedence_data = np.array([1,1,1],dtype=complex)
+
+## mutuals
+mutuals_coords=np.array([[0],[1]],dtype=int)
+mutuals_data = np.array([2.j],dtype=complex)
+
+
+electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+## target solution is the solution of the system when voltage=5
+electric_sys.add_voltage_source(voltage=10,input_node=1,output_node=0)
+# setting the ground
+electric_sys.set_ground(0)
+electric_sys.build_system()
+
+## Need to evaluate the system because it was altered when calling the second member
+sys,b = electric_sys.get_system(sparse_rhs=True)
+sol = spsolve(sys.tocsr(),b.todense())
+## Target solution when voltage_source_data = np.array([5],dtype=complex)
+sol_target = np.array([-1.66666667+1.66666667j, -0.83333333+1.66666667j, 0.83333333-1.66666667j, 2.5-3.33333333j, 0.+0.j, 5+0.j, 4.16666667+1.66666667j])
+for i in range(3000):
+    ## computing gradients
+    db = 2*spsolve(sys.tocsr().conj().T, sol - sol_target)
+    drhs = db[b.row]
+    ## Backpropagate gradients from drhs to voltage_source_data
+    gradients = electric_sys.backpropagate_gradients(drhs=drhs)
+    ## Performing gradient descent on voltage_source_data
+    electric_sys.voltage_source_data = electric_sys.voltage_source_data - 0.01*gradients.voltage_source_data
+    ## After the update of voltage_source_data we need to rebuild the system to update sys and b
+    electric_sys.build_system()
+    sys,b = electric_sys.get_system(sparse_rhs=True)
+    sol = spsolve(sys.tocsr(),b.todense())
+## Checking whether we converged to the right solution
+np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5],dtype=complex))
 ```
 
