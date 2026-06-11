@@ -409,13 +409,13 @@ def test_optim_source_complex():
 
 
 if __name__ == "__main__":
-    # test_backpropagation()
-    # test_optim_res()
-    # test_optim_capa()
-    # test_optim_coil()
-    # test_optim_mutual()
-    # test_optim_res_mutual()
-    # test_optim_current_sources()
-    # test_backpropagation_frequency()
-    # test_optim_mutual_complex()
+    test_backpropagation()
+    test_optim_res()
+    test_optim_capa()
+    test_optim_coil()
+    test_optim_mutual()
+    test_optim_res_mutual()
+    test_optim_current_sources()
+    test_backpropagation_frequency()
+    test_optim_mutual_complex()
     test_optim_source_complex()

@@ -66,12 +66,12 @@ def test_res_grid():
     mask = adjacency.row>adjacency.col
     impedence_coords = np.array([adjacency.row,adjacency.col],dtype=int)[:,mask]
     impedence_data = adjacency.data[mask]
-    mutual_coords = [[],[]]
-    mutual_data = []
+    mutual_coords = np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=complex)
 
 
 
-    electric_sys = FrequencySystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutuals_coords=mutual_coords,mutuals_data=mutual_data)
+    electric_sys = FrequencySystemBuilder(impedence_coords=impedence_coords,impedence_data=impedence_data,mutual_coords=mutual_coords,mutual_data=mutual_data)
     electric_sys.add_current_source(intensity=2,input_node=0,output_node=24)
     electric_sys.add_current_source(intensity=2,input_node=42,output_node=24)
     electric_sys.add_current_source(intensity=2,input_node=48,output_node=24)
