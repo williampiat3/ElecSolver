@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix, block_diag, coo_array
-from .utils import SolutionTemporal,GradientsParameters
+from .utils import SolutionTemporal,GradientsParametersTemporal
 import warnings
 
 class TemporalSystemBuilder():
@@ -271,10 +271,10 @@ class TemporalSystemBuilder():
         self.S1_reverse_res = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + self.res_data.shape[0]*2 + np.arange(self.res_data.shape[0])
         self.S1_reverse_res_sign = np.ones_like(self.res_data)
         # resistive mutuals are used twice in the system but only contribute once to the gradient
-        self.S1_reverse_inductive_res_1 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0])
-        self.S1_reverse_inductive_res_2 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0],self.res_mutual_data.shape[0]*2)
-        self.S1_reverse_inductive_res_sign_1 = sign[self.res_mutual_coords[0]]*sign[self.res_mutual_coords[1]]
-        self.S1_reverse_inductive_res_sign_2 = self.S1_reverse_inductive_res_sign_1
+        self.S1_reverse_mutual_res_1 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0])
+        self.S1_reverse_mutual_res_2 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0],self.res_mutual_data.shape[0]*2)
+        self.S1_reverse_mutual_res_sign_1 = sign[self.res_mutual_coords[0]]*sign[self.res_mutual_coords[1]]
+        self.S1_reverse_mutual_res_sign_2 = self.S1_reverse_mutual_res_sign_1
 
         ## building S2 system
         i_s_S2 = np.concatenate((i_s_edges_coil_S2,i_s_edges_capa_S2,i_s_additionnal_S2),axis=0)
@@ -290,10 +290,10 @@ class TemporalSystemBuilder():
         self.S2_reverse_capa_sign_1 = np.ones_like(self.capa_data)
         self.S2_reverse_capa_sign_2 = -np.ones_like(self.capa_data)
         # inductive mutuals are used twice in the system but only contribute once to the gradient
-        self.S2_reverse_inductive_mutuals_1 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0])
-        self.S2_reverse_inductive_mutuals_2 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0], self.inductive_mutual_data.shape[0]*2)
-        self.S2_reverse_inductive_mutuals_sign_1 = sign[self.inductive_mutual_coords[0]]*sign[self.inductive_mutual_coords[1]]
-        self.S2_reverse_inductive_mutuals_sign_2 = self.S2_reverse_inductive_mutuals_sign_1
+        self.S2_reverse_mutual_inductive_1 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0])
+        self.S2_reverse_mutual_inductive_2 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0], self.inductive_mutual_data.shape[0]*2)
+        self.S2_reverse_mutual_inductive_sign_1 = sign[self.inductive_mutual_coords[0]]*sign[self.inductive_mutual_coords[1]]
+        self.S2_reverse_mutual_inductive_sign_2 = self.S2_reverse_mutual_inductive_sign_1
 
         ## building S_init system
         i_s_init = np.concatenate((i_s_nodes_S1,i_s_edges_coil_S2,i_s_edges_res_S1,i_s_edges_capa_S2,i_s_ground_S1,i_s_sources_S1),axis=0)
@@ -455,7 +455,7 @@ class TemporalSystemBuilder():
             np.add.at(rhs, nodes, data_rhs)
         return sys1,sys2,rhs
 
-    def get_gradients(self, dS1=None, dS2=None, dS_init=None, drhs=None):
+    def backpropagate_gradients(self, dS1=None, dS2=None, dS_init=None, drhs=None):
         """Function to backpropagate the gradient from the system gradient to the different parameters
            It needs to called after the build_system function to be able to propagate the gradient on the parameters
            For efficient backpropagation the gradients provided to this function should only be the same data arrays than S1, S2, S_init and rhs (and not the whole coo_matrix or the whole rhs vector) to avoid unnecessary computations on zero values.
@@ -487,8 +487,8 @@ class TemporalSystemBuilder():
             ## resistance contribution to S1
             grads_res += dS1[self.S1_reverse_res]*self.S1_reverse_res_sign
             ## resistive mutuals contribution to S1
-            grads_res_mutuals += dS1[self.S1_reverse_inductive_res_1]*self.S1_reverse_inductive_res_sign_1
-            grads_res_mutuals += dS1[self.S1_reverse_inductive_res_2]*self.S1_reverse_inductive_res_sign_2
+            grads_res_mutuals += dS1[self.S1_reverse_mutual_res_1]*self.S1_reverse_mutual_res_sign_1
+            grads_res_mutuals += dS1[self.S1_reverse_mutual_res_2]*self.S1_reverse_mutual_res_sign_2
 
 
         if dS2 is not None:
@@ -498,8 +498,8 @@ class TemporalSystemBuilder():
             grads_capa += dS2[self.S2_reverse_capa_1]*self.S2_reverse_capa_sign_1
             grads_capa += dS2[self.S2_reverse_capa_2]*self.S2_reverse_capa_sign_2
             ## inductive mutuals contribution to S2
-            grads_inductive_mutuals += dS2[self.S2_reverse_inductive_mutuals_1]*self.S2_reverse_inductive_mutuals_sign_1
-            grads_inductive_mutuals += dS2[self.S2_reverse_inductive_mutuals_2]*self.S2_reverse_inductive_mutuals_sign_2
+            grads_inductive_mutuals += dS2[self.S2_reverse_mutual_inductive_1]*self.S2_reverse_mutual_inductive_sign_1
+            grads_inductive_mutuals += dS2[self.S2_reverse_mutual_inductive_2]*self.S2_reverse_mutual_inductive_sign_2
 
         if dS_init is not None:
             grads_res += dS_init[self.S_init_reverse_res]*self.S_init_reverse_res_sign
@@ -522,7 +522,7 @@ class TemporalSystemBuilder():
             grads_current_sources[mask_eq_in] += drhs[np.arange(in_current_nodes.shape[0])]*in_current_sign
             grads_current_sources[mask_eq_out] += drhs[in_current_nodes.shape[0] + np.arange(out_current_nodes.shape[0])]*out_current_sign
             grads_voltage_sources += drhs[(in_current_nodes.shape[0] + out_current_nodes.shape[0]):]
-        return GradientsParameters(grads_coils, grads_res, grads_capa, grads_inductive_mutuals, grads_res_mutuals, grads_voltage_sources, grads_current_sources)
+        return GradientsParametersTemporal(grads_coils, grads_res, grads_capa, grads_inductive_mutuals, grads_res_mutuals, grads_voltage_sources, grads_current_sources)
 
 
     def get_frequency_system(self,omega,sparse_rhs=False):

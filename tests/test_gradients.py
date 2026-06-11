@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.sparse.linalg import spsolve
-from ElecSolver import TemporalSystemBuilder
+from ElecSolver import TemporalSystemBuilder, FrequencySystemBuilder
 
 
 def test_backpropagation():
@@ -34,15 +34,15 @@ def test_backpropagation():
     dS2 = np.array([3**i for i in range(len(S2.data))])
     dS_i = np.array([3**i for i in range(len(S_i.data))])
     drhs = np.array([3**i for i in range(len(rhs.data))])
-    elec_sys.get_gradients(dS1=dS1)
-    elec_sys.get_gradients(dS2=dS2)
-    elec_sys.get_gradients(dS_init=dS_i)
-    elec_sys.get_gradients(drhs=drhs)
+    elec_sys.backpropagate_gradients(dS1=dS1)
+    elec_sys.backpropagate_gradients(dS2=dS2)
+    elec_sys.backpropagate_gradients(dS_init=dS_i)
+    elec_sys.backpropagate_gradients(drhs=drhs)
     dS1 = np.ones_like(S1.data)*0.1
     dS2 = np.ones_like(S2.data)*0.001
     dS_i = np.ones_like(S_i.data)*0.01
     drhs = np.ones_like(rhs.data,dtype=float)
-    elec_sys.get_gradients(dS1=dS1,dS2=dS2,dS_init=dS_i,drhs=drhs)
+    elec_sys.backpropagate_gradients(dS1=dS1,dS2=dS2,dS_init=dS_i,drhs=drhs)
 
 
 def test_optim_res():
@@ -78,7 +78,7 @@ def test_optim_res():
         db = 2*spsolve(S_i.tocsr().T, sol - sol_target)
         drhs = db[rhs.row]
         dS_i = -( db[S_i.row]*sol[S_i.col])
-        gradients = elec_sys.get_gradients(dS_init=dS_i)# ,drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(dS_init=dS_i)# ,drhs=drhs)
         elec_sys.res_data = elec_sys.res_data - 0.01*gradients.res_data
         elec_sys.res_data[1] = 1.
         elec_sys.build_system()
@@ -125,7 +125,7 @@ def test_optim_capa():
         dB = 2*spsolve(A.T, sol - sol_target)
         ## chain rule for gradients of capa_data (S2 appears twice in the computation graph)
         dS2 = -( dB[S2.row]*sol[S2.col])+(dB[S2.row]*sol_init[S2.col])
-        gradients = elec_sys.get_gradients(dS2=dS2)# ,drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(dS2=dS2)# ,drhs=drhs)
         elec_sys.capa_data = elec_sys.capa_data - 0.01*gradients.capa_data
         elec_sys.capa_data[1] = 1.
         elec_sys.build_system()
@@ -174,7 +174,7 @@ def test_optim_coil():
         dB = 2*spsolve(A.T, sol - sol_target)
         ## chain rule for gradients of coil_data (S2 appears twice in the computation graph)
         dS2 = -( dB[S2.row]*sol[S2.col])+(dB[S2.row]*sol_init[S2.col])
-        gradients = elec_sys.get_gradients(dS2=dS2)# ,drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(dS2=dS2)# ,drhs=drhs)
         elec_sys.coil_data = elec_sys.coil_data - 0.05*gradients.coil_data
         elec_sys.coil_data[1] = 1.
         elec_sys.build_system()
@@ -224,7 +224,7 @@ def test_optim_mutual():
         dB = 2*spsolve(A.T, sol - sol_target)
         ## chain rule for gradients of coil_data (S2 appears twice in the computation graph)
         dS2 = -( dB[S2.row]*sol[S2.col])+(dB[S2.row]*sol_init[S2.col])
-        gradients = elec_sys.get_gradients(dS2=dS2)# ,drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(dS2=dS2)# ,drhs=drhs)
         elec_sys.inductive_mutual_data = elec_sys.inductive_mutual_data - 0.001*gradients.inductive_mutual_data
         elec_sys.build_system()
         S1,S2,rhs = elec_sys.get_system(sparse_rhs=True)
@@ -272,7 +272,7 @@ def test_optim_res_mutual():
         dB = 2*spsolve(A.T, sol - sol_target)
         ## chain rule for gradients of coil_data (S1 appears once in the computation graph)
         dS1 = -( dB[S1.row]*sol[S1.col])*dt
-        gradients = elec_sys.get_gradients(dS1=dS1)# ,drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(dS1=dS1)# ,drhs=drhs)
         elec_sys.res_mutual_data = elec_sys.res_mutual_data - 0.05*gradients.res_mutual_data
         elec_sys.build_system()
         S1,S2,rhs = elec_sys.get_system(sparse_rhs=True)
@@ -315,10 +315,107 @@ def test_optim_current_sources():
         db = 2*spsolve(S_i.tocsr().T, sol - sol_target)
         drhs = db[rhs.row]
         ## backpropagation of gradients to current_source_data
-        gradients = elec_sys.get_gradients(drhs=drhs)
+        gradients = elec_sys.backpropagate_gradients(drhs=drhs)
         elec_sys.current_source_data = elec_sys.current_source_data - 0.01*gradients.current_source_data
         elec_sys.build_system()
         S_i,rhs = elec_sys.get_init_system(sparse_rhs=True)
         sol = spsolve(S_i.tocsr(),rhs.todense())
     ## Checking whether we converged to the right solution
     np.testing.assert_allclose(elec_sys.current_source_data, np.array([8],dtype=float))
+
+def test_backpropagation_frequency():
+    ## Simple circuit with one coil and one res
+    impedence_coords = np.array([[0,0],[1,2]],dtype=int)
+    impedence_data = np.array([1,1j],dtype=complex)
+
+    mutuals_coords=np.array([[0],[1]],dtype=int)
+    mutuals_data = np.array([0.1j],dtype=complex)
+
+    electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys.add_current_source(intensity=10,input_node=1,output_node=0)
+    electric_sys.set_ground(0)
+    electric_sys.build_system()
+
+    S,b = electric_sys.get_system(sparse_rhs=True)
+    dS = np.array([3**i+1j for i in range(len(S.data))])
+    drhs = np.array([3**i+1j for i in range(len(b.data))])
+    electric_sys.backpropagate_gradients(dS=dS,drhs=drhs)
+
+def test_optim_mutual_complex():
+    ## sparse python res matrix
+    impedence_coords = np.array([[0,0,1],[1,2,2]],dtype=int)
+    impedence_data = np.array([1,1,1],dtype=complex)
+
+    ## mutuals
+    mutuals_coords=np.array([[0],[1]],dtype=int)
+    mutuals_data = np.array([2.j],dtype=complex)
+
+
+    electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys.add_voltage_source(voltage=10,input_node=1,output_node=0)
+    # setting the ground
+    electric_sys.set_ground(0)
+    electric_sys.build_system()
+
+    ## Need to evaluate the system because it was altered when calling the second member
+    sys,b = electric_sys.get_system(sparse_rhs=True)
+    sol = spsolve(sys.tocsr(),b.todense())
+    ## Target solution when impedence_data = np.array([1+1j,1,1],dtype=complex)
+    sol_target = np.array([-2.+4.j, -1.+2.j,  1.-2.j,  3.-6.j,  0.+0.j, 10.+0.j,  9.+2.j])
+    for i in range(3000):
+        ## computing gradients
+        db = 2*spsolve(sys.tocsr().conj().T, sol - sol_target)
+        dS = -( db[sys.row]*np.conj(sol[sys.col]))
+        gradients = electric_sys.backpropagate_gradients(dS=dS)# ,drhs=drhs)
+        electric_sys.impedence_data = electric_sys.impedence_data - 0.01*gradients.impedence_data
+        electric_sys.build_system()
+        sys,b = electric_sys.get_system(sparse_rhs=True)
+        sol = spsolve(sys.tocsr(),b.todense())
+    ## Checking whether we converged to the right solution
+    np.testing.assert_allclose(electric_sys.impedence_data, np.array([1+1j,1,1],dtype=complex))
+
+def test_optim_source_complex():
+    ## sparse python res matrix
+    impedence_coords = np.array([[0,0,1],[1,2,2]],dtype=int)
+    impedence_data = np.array([1,1,1],dtype=complex)
+
+    ## mutuals
+    mutuals_coords=np.array([[0],[1]],dtype=int)
+    mutuals_data = np.array([2.j],dtype=complex)
+
+
+    electric_sys = FrequencySystemBuilder(impedence_coords,impedence_data,mutuals_coords,mutuals_data)
+    electric_sys.add_voltage_source(voltage=10,input_node=1,output_node=0)
+    # setting the ground
+    electric_sys.set_ground(0)
+    electric_sys.build_system()
+
+    ## Need to evaluate the system because it was altered when calling the second member
+    sys,b = electric_sys.get_system(sparse_rhs=True)
+    sol = spsolve(sys.tocsr(),b.todense())
+    ## Target solution when voltage_source_data = np.array([5],dtype=complex)
+    sol_target = np.array([-1.66666667+1.66666667j,-0.83333333+1.66666667j,0.83333333-1.66666667j,2.5       -3.33333333j,  0.        +0.j,          5.        +0.j, 4.16666667+1.66666667j])
+    for i in range(3000):
+        ## computing gradients
+        db = 2*spsolve(sys.tocsr().conj().T, sol - sol_target)
+        drhs = db[b.row]
+        gradients = electric_sys.backpropagate_gradients(drhs=drhs)
+        electric_sys.voltage_source_data = electric_sys.voltage_source_data - 0.01*gradients.voltage_source_data
+        electric_sys.build_system()
+        sys,b = electric_sys.get_system(sparse_rhs=True)
+        sol = spsolve(sys.tocsr(),b.todense())
+    ## Checking whether we converged to the right solution
+    np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5],dtype=complex))
+
+
+if __name__ == "__main__":
+    # test_backpropagation()
+    # test_optim_res()
+    # test_optim_capa()
+    # test_optim_coil()
+    # test_optim_mutual()
+    # test_optim_res_mutual()
+    # test_optim_current_sources()
+    # test_backpropagation_frequency()
+    # test_optim_mutual_complex()
+    test_optim_source_complex()
