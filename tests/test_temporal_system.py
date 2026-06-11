@@ -226,10 +226,8 @@ def test_big_grid():
     coords_capa = np.array([[],[]],dtype=int)
     data_capa = np.array([],dtype=float)
 
-    mutual_coords = [[],[]]
-    mutual_data = []
-
-
+    mutual_coords = np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
     electric_sys = TemporalSystemBuilder(coords_coil,data_coil,coords_res,data_res,coords_capa,data_capa,mutual_coords,mutual_data,mutual_coords,mutual_data)

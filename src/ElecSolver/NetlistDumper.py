@@ -2,7 +2,7 @@ import numpy as np
 from .NetlistGenerator import ResistorNetlist, CapacitorNetlist, InductorNetlist, MutualInductance, SubCircuitDefinition
 from .TemporalSystemBuilder import TemporalSystemBuilder
 
-class TemporalNetlistDumper(object): 
+class TemporalNetlistDumper(object):
     def __init__(self, temporal_system_builder: TemporalSystemBuilder):
         """Constructor of TemporalNetlistDumper. Allows dumping TemporalSystemBuilder as subckt compatible with spice-like tools
 
@@ -12,15 +12,15 @@ class TemporalNetlistDumper(object):
         if not isinstance(temporal_system_builder, TemporalSystemBuilder):
             raise TypeError("temporal_system_builder must be an instance of "+ TemporalSystemBuilder.__name__)
         self.system_builder = temporal_system_builder
-        self.ports_map ={} 
-    
+        self.ports_map ={}
+
     def add_port(self, port_number: int, port_name: str):
         """Add port to subckt definition, will be exposed and accessible in spice tools
 
         Args:
             port_number (int): port number used in temporal_system_builder to be used as port
-            port_name (str): port name to be used for export 
-        """ 
+            port_name (str): port name to be used for export
+        """
         self.ports_map.update({port_number:port_name})
 
     def generate_subcircuit_file(self, subcircuit_name : str = "esolvsub", file_name : str ="esolvsub.net"):
@@ -30,7 +30,7 @@ class TemporalNetlistDumper(object):
             subcircuit_name (str, optional): name of the subcircuit to be generated. Defaults to "esolvsub".
             file_name (str, optional): file name to dump the generate the netlist to. Defaults to "esolvsub.net".
         """
-        if not bool(self.ports_map):  # check if dict is empty 
+        if not bool(self.ports_map):  # check if dict is empty
             raise ValueError("ports_map is empty, cannot generate subckt")
         list_res =[]
         list_coil=[]
@@ -60,10 +60,10 @@ class TemporalNetlistDumper(object):
                 else:
                     node2=str(node2+1) # +1 because 0 node is gnd in spice !
                 curr_list_out.append(current_class(str(index), node1, node2,  value))
-        
-        for index_mutual, mutual in enumerate(self.system_builder.inductive_mutuals_data):
-            l1 = self.system_builder.inductive_mutuals_coords[0][index_mutual]
-            l2 = self.system_builder.inductive_mutuals_coords[1][index_mutual]
+
+        for index_mutual, mutual in enumerate(self.system_builder.inductive_mutual_data):
+            l1 = self.system_builder.inductive_mutual_coords[0][index_mutual]
+            l2 = self.system_builder.inductive_mutual_coords[1][index_mutual]
             l1_val = self.system_builder.coil_data[l1]
             l2_val = self.system_builder.coil_data[l2]
             k = mutual/np.sqrt(l1_val*l2_val)
