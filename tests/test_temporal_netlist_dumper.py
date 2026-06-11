@@ -1,4 +1,4 @@
-from ElecSolver import TemporalSystemBuilder 
+from ElecSolver import TemporalSystemBuilder
 from ElecSolver import TemporalNetlistDumper
 import numpy as np
 import unittest
@@ -17,12 +17,12 @@ class TestNetlistDumper(unittest.TestCase):
         capa_coords = np.array([[1,2],[3,0]],dtype=int)
         capa_data = np.array([1,1],dtype=float)
         ## coupling factors
-        mutuals_coords=np.array([[0],[1]],dtype=int)
-        mutuals_data = np.array([1e-5],dtype=float)
-        res_mutuals_coords=np.array([[],[]],dtype=int)
-        res_mutuals_data = np.array([],dtype=float)
+        mutual_coords=np.array([[0],[1]],dtype=int)
+        mutual_data = np.array([1e-5],dtype=float)
+        res_mutual_coords=np.array([[],[]],dtype=int)
+        res_mutual_data = np.array([],dtype=float)
 
-        self.elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+        self.elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
 
     def tearDown(self):
         # Remove the test file after tests
@@ -36,7 +36,7 @@ class TestNetlistDumper(unittest.TestCase):
 
     def test_init_valid_system(self):
         TemporalNetlistDumper(self.elec_sys)
-    
+
     def test_add_port(self):
         test = TemporalNetlistDumper(self.elec_sys)
         test.add_port(1,'in')

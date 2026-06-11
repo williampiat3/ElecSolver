@@ -19,14 +19,14 @@ def test_temporal():
     capa_data = np.array([1],dtype=float)
 
     ## total impedance
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
@@ -82,14 +82,14 @@ def test_temporal2():
     capa_data = np.array([2,2],dtype=float)
 
     ## total impedance
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
@@ -136,14 +136,14 @@ def test_one_shot_temporal():
     capa_data = np.array([1,1],dtype=float)
 
     ## total impedance
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
@@ -188,14 +188,14 @@ def test_voltage():
     capa_data = np.array([1,1],dtype=float)
 
     ## total impedance
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_voltage_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
@@ -306,15 +306,15 @@ def freq_simulation():
     capa_data = np.array([1,1],dtype=float)
 
     ## total impedance
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
     fvect = [10,20,100,1000]
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()
@@ -341,16 +341,16 @@ def test_hydraulic():
     capa_coords = np.array([[],[]],dtype=int)
     capa_data = np.array([],dtype=float)
 
-    ## Defining empty mutuals here
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    ## Defining empty mutual here
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
     ## initializing system
-    hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     ## enforcing a pressure delta of 10 Pa
     hydraulic_sys.add_voltage_source(10,1,0)
     ## Seting ground at point 0
@@ -386,15 +386,15 @@ def test_lonely_nodes():
     capa_coords = np.array([[1],[3]],dtype=int)
     capa_data = np.array([2],dtype=float)
 
-    ## Defining empty mutuals here
-    mutuals_coords=np.array([[],[]],dtype=int)
-    mutuals_data = np.array([],dtype=float)
+    ## Defining empty mutual here
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
 
 
-    res_mutuals_coords=np.array([[],[]],dtype=int)
-    res_mutuals_data = np.array([],dtype=float)
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
 
-    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutuals_coords,mutuals_data,res_mutuals_coords,res_mutuals_data)
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
     elec_sys.add_current_source(10,1,0)
     elec_sys.set_ground(0)
     elec_sys.build_system()

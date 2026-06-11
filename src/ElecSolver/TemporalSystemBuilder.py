@@ -1,11 +1,11 @@
 import numpy as np
 import networkx as nx
 from scipy.sparse import coo_matrix, block_diag, coo_array
-from .utils import SolutionTemporal
+from .utils import SolutionTemporal,GradientsParameters
 import warnings
 
 class TemporalSystemBuilder():
-    def __init__(self,coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,inductive_mutuals_coords,inductive_mutuals_data,res_mutual_coords,res_mutual_data):
+    def __init__(self,coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,inductive_mutual_coords,inductive_mutual_data,res_mutual_coords,res_mutual_data):
         """Class for building the linear system to solve for both temporal and frequency studies
 
         Parameters
@@ -25,18 +25,18 @@ class TemporalSystemBuilder():
             Repetitions will be considered as another capacity in //
         capa_data : np.array of shape (R,) R being the number of capacities
             Values of capacity whose coordinates are in res_coords
-        inductive_mutuals_coords : np.array of shape (M,2) M being the number of mutuals in the system
+        inductive_mutual_coords : np.array of shape (M,2) M being the number of mutuals in the system
             The coordinates are the indices of the coils in the coil_data array that have a mutual effect
             Inductive mutuals are only supported between coils
             Repetitions will be considered as another mutual
-        inductive_mutuals_data : np.array of shape (M,) M being the number of mutuals in the system
-            Values of mutuals whose coordinates are in inductive_mutuals_coords.
+        inductive_mutual_data : np.array of shape (M,) M being the number of mutuals in the system
+            Values of mutuals whose coordinates are in inductive_mutual_coords.
             The mutual follows the sign of the nodes given in the coil_coords array
         res_mutual_coords :np.array of shape (N,2) N being the number of resistive mutuals in the system
             the coordinates are the indices of the coils or resistance in the coil_data and res_data array that have a resistive mutual effect
             resitive mutuals are only supported between coils and resistances
         res_mutual_data : np.array of shape (N,) N being the number of resistive mutuals in the system
-            Values of mutuals whose coordinates are in res_mutuals_coords.
+            Values of mutuals whose coordinates are in res_mutual_coords.
             The mutual follows the sign of the nodes given in the coil_coords or res_coord array
         """
 
@@ -46,14 +46,15 @@ class TemporalSystemBuilder():
         self.res_data=res_data
         self.capa_coords=capa_coords
         self.capa_data=capa_data
-        self.inductive_mutuals_coords=inductive_mutuals_coords
-        self.inductive_mutuals_data=inductive_mutuals_data
+        self.inductive_mutual_coords=inductive_mutual_coords
+        self.inductive_mutual_data=inductive_mutual_data
         self.res_mutual_coords=res_mutual_coords
         self.res_mutual_data=res_mutual_data
-        self.current_sources_coords=np.zeros((2,0),dtype=int)
-        self.current_sources_data=np.array([],dtype=int)
-        self.voltage_sources_coords=np.zeros((2,0),dtype=int)
-        self.voltage_sources_data=np.array([],dtype=int)
+        ## Array for containing source information (cannot be given at initialization since it needs checks)
+        self.current_source_coords=np.zeros((2,0),dtype=int)
+        self.current_source_data=np.array([],dtype=int)
+        self.voltage_source_coords=np.zeros((2,0),dtype=int)
+        self.voltage_source_data=np.array([],dtype=int)
         self.source_count = 0
 
         ## initializing second member as empty
@@ -67,10 +68,10 @@ class TemporalSystemBuilder():
         We test it with networkx and build some internal variables that are necessary for the system building
         In case you want to change the connectivity graph of your system you need to rerun the analysis to make check wether the topology changed or not
         """
-        if self.voltage_sources_data.shape==0 and self.current_sources_data.shape==0:
+        if self.voltage_source_data.shape==0 and self.current_source_data.shape==0:
             raise RuntimeError("The system does not have any sources (voltage or current) defined before running the graph analysis. Please define all your sources before calling set_ground, build_system or graph_analysis")
 
-        self.all_coords = np.concatenate((self.coil_coords,self.res_coords,self.capa_coords,self.voltage_sources_coords),axis=1)
+        self.all_coords = np.concatenate((self.coil_coords,self.res_coords,self.capa_coords,self.voltage_source_coords),axis=1)
         all_points = np.unique(self.all_coords)
         if all_points.shape != np.max(self.all_coords)+1:
             warnings.warn("Warning: There is one or multiple lonely nodes please clean your impedence graph")
@@ -78,7 +79,7 @@ class TemporalSystemBuilder():
         if self.analysed:
             warnings.warn("Warning: analysis was already performed: grounds will be reasigned")
 
-        self.all_impedences = np.concatenate([self.coil_data,self.res_data,self.capa_data,self.voltage_sources_data],axis=0)
+        self.all_impedences = np.concatenate([self.coil_data,self.res_data,self.capa_data,self.voltage_source_data],axis=0)
 
         # actual number of node in the system
         self.size = np.max(self.all_coords)+1
@@ -240,9 +241,9 @@ class TemporalSystemBuilder():
         sign = np.sign(self.all_coords[0]-self.all_coords[1])
 
         ## inductive mutuals (contribution to S2 only)
-        i_s_additionnal_S2 = self.offset_i + np.concatenate((self.inductive_mutuals_coords[0],self.inductive_mutuals_coords[1]),axis=0)
-        j_s_additionnal_S2 = np.concatenate((self.inductive_mutuals_coords[1],self.inductive_mutuals_coords[0]),axis=0)
-        data_additionnal_S2 = np.tile(self.inductive_mutuals_data*sign[self.inductive_mutuals_coords[0]]*sign[self.inductive_mutuals_coords[1]],(2,))
+        i_s_additionnal_S2 = self.offset_i + np.concatenate((self.inductive_mutual_coords[0],self.inductive_mutual_coords[1]),axis=0)
+        j_s_additionnal_S2 = np.concatenate((self.inductive_mutual_coords[1],self.inductive_mutual_coords[0]),axis=0)
+        data_additionnal_S2 = np.tile(self.inductive_mutual_data*sign[self.inductive_mutual_coords[0]]*sign[self.inductive_mutual_coords[1]],(2,))
 
         ## resistive mutuals (contribution to S1 only)
         i_s_additionnal_S1= self.offset_i + np.concatenate((self.res_mutual_coords[0],self.res_mutual_coords[1]),axis=0)
@@ -256,9 +257,9 @@ class TemporalSystemBuilder():
         data_ground_S1 = np.ones(len(self.affected_potentials))
 
         ## voltage sources equations
-        i_s_sources_S1 = np.tile(np.arange(0,self.voltage_sources_data.shape[0]),2)+self.number_intensities+self.size - self.source_count
-        j_s_sources_S1 = np.concatenate((self.offset_j + self.voltage_sources_coords[0],self.offset_j+self.voltage_sources_coords[1]),axis=0)
-        data_source_S1 = np.concatenate((np.ones_like(self.voltage_sources_data),-np.ones_like(self.voltage_sources_data)))
+        i_s_sources_S1 = np.tile(np.arange(0,self.voltage_source_data.shape[0]),2)+self.number_intensities+self.size - self.source_count
+        j_s_sources_S1 = np.concatenate((self.offset_j + self.voltage_source_coords[0],self.offset_j+self.voltage_source_coords[1]),axis=0)
+        data_source_S1 = np.concatenate((np.ones_like(self.voltage_source_data),-np.ones_like(self.voltage_source_data)))
 
 
         ## building S1 system
@@ -266,15 +267,43 @@ class TemporalSystemBuilder():
         j_s_S1 = np.concatenate((j_s_nodes_S1,j_s_edges_coil_S1,j_s_edges_res_S1,j_s_edges_capa_S1,j_s_additionnal_S1,j_s_ground_S1,j_s_sources_S1),axis=0)
         data_S1 = np.concatenate((data_nodes_S1,data_edges_coil_S1,data_edges_res_S1,data_edges_capa_S1,data_additionnal_S1,data_ground_S1,data_source_S1),axis=0)
 
+        ## building reverse S1 system for gradients
+        self.S1_reverse_res = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + self.res_data.shape[0]*2 + np.arange(self.res_data.shape[0])
+        self.S1_reverse_res_sign = np.ones_like(self.res_data)
+        # resistive mutuals are used twice in the system but only contribute once to the gradient
+        self.S1_reverse_inductive_res_1 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0])
+        self.S1_reverse_inductive_res_2 = data_nodes_S1.shape[0]+data_edges_coil_S1.shape[0] + data_edges_res_S1.shape[0] + data_edges_capa_S1.shape[0] + np.arange(self.res_mutual_data.shape[0],self.res_mutual_data.shape[0]*2)
+        self.S1_reverse_inductive_res_sign_1 = sign[self.res_mutual_coords[0]]*sign[self.res_mutual_coords[1]]
+        self.S1_reverse_inductive_res_sign_2 = self.S1_reverse_inductive_res_sign_1
+
         ## building S2 system
         i_s_S2 = np.concatenate((i_s_edges_coil_S2,i_s_edges_capa_S2,i_s_additionnal_S2),axis=0)
         j_s_S2 = np.concatenate((j_s_edges_coil_S2,j_s_edges_capa_S2,j_s_additionnal_S2),axis=0)
         data_S2 = np.concatenate((data_edges_coil_S2,data_edges_capa_S2,data_additionnal_S2),axis=0)
 
+        ## building reverse S2 system for gradients
+        self.S2_reverse_coil = np.arange(data_edges_coil_S2.shape[0])
+        self.S2_reverse_coil_sign = np.ones_like(data_edges_coil_S2)
+        # capacities are used twice in the system but only contribute once to the gradient
+        self.S2_reverse_capa_1 = data_edges_coil_S2.shape[0] + np.arange(self.capa_data.shape[0])
+        self.S2_reverse_capa_2 = data_edges_coil_S2.shape[0] + np.arange(self.capa_data.shape[0], self.capa_data.shape[0]*2)
+        self.S2_reverse_capa_sign_1 = np.ones_like(self.capa_data)
+        self.S2_reverse_capa_sign_2 = -np.ones_like(self.capa_data)
+        # inductive mutuals are used twice in the system but only contribute once to the gradient
+        self.S2_reverse_inductive_mutuals_1 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0])
+        self.S2_reverse_inductive_mutuals_2 = data_edges_coil_S2.shape[0] + data_edges_capa_S2.shape[0] + np.arange(self.inductive_mutual_data.shape[0], self.inductive_mutual_data.shape[0]*2)
+        self.S2_reverse_inductive_mutuals_sign_1 = sign[self.inductive_mutual_coords[0]]*sign[self.inductive_mutual_coords[1]]
+        self.S2_reverse_inductive_mutuals_sign_2 = self.S2_reverse_inductive_mutuals_sign_1
+
         ## building S_init system
         i_s_init = np.concatenate((i_s_nodes_S1,i_s_edges_coil_S2,i_s_edges_res_S1,i_s_edges_capa_S2,i_s_ground_S1,i_s_sources_S1),axis=0)
         j_s_init = np.concatenate((j_s_nodes_S1,j_s_edges_coil_S2,j_s_edges_res_S1,j_s_edges_capa_S2,j_s_ground_S1,j_s_sources_S1),axis=0)
         data_init = np.concatenate((data_nodes_S1,data_edges_coil_S2,data_edges_res_S1,data_edges_capa_S2,data_ground_S1,data_source_S1),axis=0)
+
+        ## building reverse S_init system for gradients only resistances contribute to the gradient in S_init
+        ## inductance and capacities even though present are in zero equations
+        self.S_init_reverse_res = data_nodes_S1.shape[0]+data_edges_coil_S2.shape[0] + self.res_data.shape[0]*2 + np.arange(self.res_data.shape[0])
+        self.S_init_reverse_res_sign = np.ones_like(self.res_data)
 
         self.S_init=(data_init,(i_s_init,j_s_init))
 
@@ -303,9 +332,9 @@ class TemporalSystemBuilder():
         """
         ## Testing current
         if check:
-            for i in range(self.current_sources_coords.shape[1]):
-                input_node=self.current_sources_coords[0,i]
-                output_node=self.current_sources_coords[1,i]
+            for i in range(self.current_source_coords.shape[1]):
+                input_node=self.current_source_coords[0,i]
+                output_node=self.current_source_coords[1,i]
                 if self.number_of_subsystems>=2:
                     valid = False
                     for system in self.list_of_subgraphs:
@@ -318,10 +347,10 @@ class TemporalSystemBuilder():
 
 
         ## Building current injection
-        in_current_nodes = self.current_sources_coords[0]
-        in_current_data = - self.current_sources_data
-        out_current_nodes = self.current_sources_coords[1]
-        out_current_data = self.current_sources_data
+        in_current_nodes = self.current_source_coords[0]
+        in_current_data = - self.current_source_data
+        out_current_nodes = self.current_source_coords[1]
+        out_current_data = self.current_source_data
         current_nodes = np.concatenate((in_current_nodes,out_current_nodes),axis=0)
         current_data = np.concatenate((in_current_data,out_current_data),axis=0)
 
@@ -332,8 +361,8 @@ class TemporalSystemBuilder():
         current_nodes = current_nodes + self.rescaler[current_nodes]
 
         ## Building voltage rhs
-        voltage_nodes = np.arange(0,self.voltage_sources_data.shape[0])+self.number_intensities+self.size - self.source_count
-        voltage_data = self.voltage_sources_data
+        voltage_nodes = np.arange(0,self.voltage_source_data.shape[0])+self.number_intensities+self.size - self.source_count
+        voltage_data = self.voltage_source_data
 
         self.rhs=(np.concatenate((current_data,voltage_data),axis=0),(np.concatenate((current_nodes,voltage_nodes),axis=0),))
         return self.rhs
@@ -350,8 +379,8 @@ class TemporalSystemBuilder():
         output_node : int
             which node for current retrieval
         """
-        self.current_sources_coords = np.append(self.current_sources_coords,np.array([[input_node],[output_node]]),axis=1)
-        self.current_sources_data = np.append(self.current_sources_data,np.array([intensity]))
+        self.current_source_coords = np.append(self.current_source_coords,np.array([[input_node],[output_node]]),axis=1)
+        self.current_source_data = np.append(self.current_source_data,np.array([intensity]))
 
     def add_voltage_source(self,voltage,input_node,output_node):
         """Adding a voltage source to the system. This adds one equation and one degree of freedom in the system (the source intensity)
@@ -366,13 +395,13 @@ class TemporalSystemBuilder():
             node from where the voltage is enforced
 
         """
-        if self.analysed == True:
+        if self.analysed:
             warnings.warn("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
-        self.voltage_sources_coords = np.append(self.voltage_sources_coords,np.array([[input_node],[output_node]]),axis=1)
-        self.voltage_sources_data = np.append(self.voltage_sources_data,np.array([voltage]))
+        self.voltage_source_coords = np.append(self.voltage_source_coords,np.array([[input_node],[output_node]]),axis=1)
+        self.voltage_source_data = np.append(self.voltage_source_data,np.array([voltage]))
         self.source_count+=1
 
-    def get_init_system(self,sparse_rhs=False):
+    def get_init_system(self,sparse_rhs=True):
         """Function to determine the initial state of the system as coo_matrix
         Parameters
         ----------
@@ -398,7 +427,7 @@ class TemporalSystemBuilder():
             np.add.at(rhs, nodes, data_rhs)
         return sys,rhs
 
-    def get_system(self,sparse_rhs=False):
+    def get_system(self,sparse_rhs=True):
         """Function to get the whole system to solve as coo_matrix
         Parameters
         ----------
@@ -425,6 +454,76 @@ class TemporalSystemBuilder():
             (data_rhs,(nodes,)) = self.rhs
             np.add.at(rhs, nodes, data_rhs)
         return sys1,sys2,rhs
+
+    def get_gradients(self, dS1=None, dS2=None, dS_init=None, drhs=None):
+        """Function to backpropagate the gradient from the system gradient to the different parameters
+           It needs to called after the build_system function to be able to propagate the gradient on the parameters
+           For efficient backpropagation the gradients provided to this function should only be the same data arrays than S1, S2, S_init and rhs (and not the whole coo_matrix or the whole rhs vector) to avoid unnecessary computations on zero values.
+           The function will return the gradients on the parameters in the same order than they were given in the constructor of the class.
+           The returned gradients are numpy arrays of the same shape than the data arrays of the parameters.
+           For example if coil_data was given as a parameter then the first returned gradient will be an array of the same shape than coil_data containing the gradient on each coil value.
+           The user can provide None for the gradient that are not available or not useful to the user, in case of multiple parameters contributing to the same value in the system the function will only return the sum of the gradients on this value.
+           For example if a resistance is present in both S1 and S_init the returned gradient on this resistance will be the sum of the gradient coming from S1 and S_init.
+        Parameters:
+        dS1: Optional[np.array]
+            gradient on the data array of S1
+        dS2: Optional[np.array]
+            gradient on the data array of S2
+        dS_init: Optional[np.array]
+            gradient on the data array of S_init
+        drhs: Optional[np.array]
+            gradient on the data array of rhs
+        """
+        ## Initializing gradients on parameters
+        grads_coils = np.zeros_like(self.coil_data,dtype=float)
+        grads_res = np.zeros_like(self.res_data,dtype=float)
+        grads_capa = np.zeros_like(self.capa_data,dtype=float)
+        grads_voltage_sources = np.zeros_like(self.voltage_source_data,dtype=float)
+        grads_inductive_mutuals = np.zeros_like(self.inductive_mutual_data,dtype=float)
+        grads_res_mutuals = np.zeros_like(self.res_mutual_data,dtype=float)
+        grads_current_sources = np.zeros_like(self.current_source_data,dtype=float)
+
+        if dS1 is not None:
+            ## resistance contribution to S1
+            grads_res += dS1[self.S1_reverse_res]*self.S1_reverse_res_sign
+            ## resistive mutuals contribution to S1
+            grads_res_mutuals += dS1[self.S1_reverse_inductive_res_1]*self.S1_reverse_inductive_res_sign_1
+            grads_res_mutuals += dS1[self.S1_reverse_inductive_res_2]*self.S1_reverse_inductive_res_sign_2
+
+
+        if dS2 is not None:
+            ## coils contribution to S2
+            grads_coils += dS2[self.S2_reverse_coil]*self.S2_reverse_coil_sign
+            ## capacities contribution to S2
+            grads_capa += dS2[self.S2_reverse_capa_1]*self.S2_reverse_capa_sign_1
+            grads_capa += dS2[self.S2_reverse_capa_2]*self.S2_reverse_capa_sign_2
+            ## inductive mutuals contribution to S2
+            grads_inductive_mutuals += dS2[self.S2_reverse_inductive_mutuals_1]*self.S2_reverse_inductive_mutuals_sign_1
+            grads_inductive_mutuals += dS2[self.S2_reverse_inductive_mutuals_2]*self.S2_reverse_inductive_mutuals_sign_2
+
+        if dS_init is not None:
+            grads_res += dS_init[self.S_init_reverse_res]*self.S_init_reverse_res_sign
+
+        if drhs is not None:
+            ## Need to make a specific treatment for current source since some equations are removed from the system
+            in_current_nodes = self.current_source_coords[0]
+            out_current_nodes = self.current_source_coords[1]
+            in_current_sign = -np.ones_like(in_current_nodes)
+            out_current_sign = np.ones_like(out_current_nodes)
+            mask_eq_in = ~np.isin(in_current_nodes,self.deleted_equation_current)
+            mask_eq_out = ~np.isin(out_current_nodes,self.deleted_equation_current)
+            in_current_nodes = in_current_nodes[mask_eq_in]
+            in_current_nodes = in_current_nodes + self.rescaler[in_current_nodes]
+            in_current_sign = in_current_sign[mask_eq_in]
+            out_current_nodes = out_current_nodes[mask_eq_out]
+            out_current_nodes = out_current_nodes + self.rescaler[out_current_nodes]
+            out_current_sign = out_current_sign[mask_eq_out]
+
+            grads_current_sources[mask_eq_in] += drhs[np.arange(in_current_nodes.shape[0])]*in_current_sign
+            grads_current_sources[mask_eq_out] += drhs[in_current_nodes.shape[0] + np.arange(out_current_nodes.shape[0])]*out_current_sign
+            grads_voltage_sources += drhs[(in_current_nodes.shape[0] + out_current_nodes.shape[0]):]
+        return GradientsParameters(grads_coils, grads_res, grads_capa, grads_inductive_mutuals, grads_res_mutuals, grads_voltage_sources, grads_current_sources)
+
 
     def get_frequency_system(self,omega,sparse_rhs=False):
         """Function to get the complex matrix for frequency studies
