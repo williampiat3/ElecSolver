@@ -10,19 +10,23 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
+In a very simple way, ElecSolver takes as an input the Resistances `R`, Capacitances `C`, Inductances `L`, Mutuals `M`, Current sources `I`  and Voltage sources `V` along with the connectivity graph `G` of the system and outputs the linear system: matrix `S` and vector `b` to solve in order to get the solution of the electric problem.
+
+$$f_{\text{ElecSolver}}(R,C,L,M,I,V,G) = (S,b)$$
+
+It is then up to the user to choose the solver they want for solving the system $Sx=b$ and to manage the time iterations if needed for temporal problems.
+
+The main goal of ElecSolver is to provide a friendly Python interface for simulating and optimizing analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
 
 
-Its main goal is to provide a friendly Python interface for simulating and optimizing analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
-
-Although providing backpropagation of gradients for optimization purposes, ElecSolver is not an auto-differentiation library (and doesn't aim to be). It is rather a tool that can be used in a differentiable programming pipeline. You may use ElecSolver with any auto-differentiation library of your choice (Pytorch, Jax, Tensorflow...) as long as you wrap ElecSolver classes in these frameworks. We aim at keeping ElecSolver as simple as possible with a limited number of dependencies in order to keep it as flexible as possible.
 
 
 > [!IMPORTANT]
 > ElecSolver has been designed with the following specifications in mind:
 > - The time needed for building the linear system must be negligible compared to the time needed for solving it.
-> - Handle natively inductive mutuals and resistive mutuals
-> - Handle as many coupled electric systems that one wants.
-> - Deal with lonely nodes and lonely edges in the electric graph: the problem can be well posed and thus solved.
+> - Handle natively inductive mutuals and resistive mutuals (skin effects).
+> - Handle as many coupled electric systems as one wants.
+> - Deal with lonely nodes and lonely edges in the electric graph: the problem can be well-posed and thus solved.
 > - Allow backpropagation of gradients through the system for optimization purposes.
 
 
@@ -31,11 +35,11 @@ Although providing backpropagation of gradients for optimization purposes, ElecS
 > Non-linear components are not supported. You must manage event detection and system updates yourself.
 
 
-## Table of content
+## Table of contents
 
 - [ElecSolver](#elecsolver)
   - [Overview](#overview)
-  - [Table of content](#table-of-content)
+  - [Table of contents](#table-of-contents)
   - [How to install](#how-to-install)
   - [Components](#components)
     - [FrequencySystemBuilder](#frequencysystembuilder)
@@ -51,10 +55,11 @@ Although providing backpropagation of gradients for optimization purposes, ElecS
   - [Gradient backpropagation](#gradient-backpropagation)
     - [Example of backpropagation of TemporalSystemBuilder](#example-of-backpropagation-of-temporalsystembuilder)
     - [Example of backpropagation of FrequencySystemBuilder](#example-of-backpropagation-of-frequencysystembuilder)
+    - [Conclusion on gradient backpropagation](#conclusion-on-gradient-backpropagation)
 
 
 ## How to install
-For now this package is distributed on pypi and can be installed using pip and conda/mamba
+For now, this package is distributed on PyPI and can be installed using pip or conda/mamba.
 ```
 pip install ElecSolver
 ```
@@ -62,7 +67,7 @@ or
 ```
 conda install elecsolver
 ```
-For solving the linear systems we advise using MUMPS through `python-mumps` available for linux, macOS and Windows. It can be installed via conda:
+For solving linear systems, we advise using MUMPS through `python-mumps`, available for Linux, macOS, and Windows. It can be installed via conda:
 ```
 conda install python-mumps
 ```
@@ -93,7 +98,7 @@ This class handles **frequency-domain** analysis of linear electric systems.
 We would like to study the following system:
 ![Multiple system](docs/img/schema.png)
 
-this can simply be defined in the following manner (We took R=1, L=1 and M=2):
+This can simply be defined in the following manner (we take R=1, L=1, and M=2):
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -121,7 +126,7 @@ electric_sys = FrequencySystemBuilder(
 # Add source (Current source here)
 electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 # Set ground
-# 2 values because one for each subsystem
+# Two values because one is needed for each subsystem
 electric_sys.set_ground(0, 3)
 # Building system
 electric_sys.build_system()
@@ -136,10 +141,10 @@ frequencial_response = electric_sys.build_intensity_and_voltage_from_vector(sol)
 print(frequencial_response.potentials[3]-frequencial_response.potentials[4])
 ```
 #### Adding a Parallel Resistance
-We want to add components in parallel with existing components for instance inserting a resistor in parallel with the first inductance (between nodes 0 and 2)
+We want to add components in parallel with existing components, for instance by inserting a resistor in parallel with the first inductance (between nodes 0 and 2).
 ![Parallel system](docs/img/schema3.png)
 
-In python, simply add the resistance to the list of impedence in the very first lines of the script:
+In Python, simply add the resistance to the list of impedence in the very first lines of the script:
 
 ```python
 import numpy as np
@@ -147,7 +152,7 @@ from scipy.sparse.linalg import spsolve
 from ElecSolver import FrequencySystemBuilder
 
 
-# We add an additionnal resistance between 0 and 2
+# We add an additional resistance between 0 and 2
 impedence_coords = np.array([[0,0,1,3,0],[1,2,2,4,2]], dtype=int)
 impedence_data = np.array([1, 1j,1, 1j,1], dtype=complex)
 
@@ -177,7 +182,7 @@ This class models **time-dependent** systems using resistors, capacitors, coils,
 We would like to study the following system:
 ![Temporal system](docs/img/schema2.png)
 
-with R=1, L=0.1, C=2 this gives:
+With R=1, L=0.1, and C=2, this gives:
 
 ```python
 import numpy as np
@@ -253,7 +258,7 @@ This outputs the following graph that displays the intensity passing through the
 
 ## Extra uses: Hydraulic or Thermal system modeling
 
-This repository can be used as is in order to model the mass flow or thermal flux in respectively Hydraulic networks or Thermal networks where a difference of pressure or a difference of temperature can be assimilated to a tension source. Since electric potentials are always computed relatively to the ground node you might need to rescale the resulting potentials:
+This repository can be used as is to model mass flow or thermal flux in hydraulic or thermal networks, respectively, where a pressure difference or a temperature difference can be assimilated to a tension source. Since electric potentials are always computed relative to the ground node, you may need to rescale the resulting potentials:
 
 We are considering the following hydraulic problem:
 
@@ -314,7 +319,7 @@ print("Debit through the system",solution.intensities_sources[0])
 ```
 ## Netlist import feature
 
-A new class, named NetlistParser allows importing passive netlist and building a TemporalSystem instance.
+A new class named NetlistParser allows importing a passive netlist and building a TemporalSystemBuilder instance.
 Solving the system can then be performed like any other example above.
 
 ```python
@@ -387,11 +392,16 @@ plt.legend()
 plt.savefig("intensities_res.png")
 ```
 ## Gradient backpropagation
-ElecSolver is basically a blackbox that takes as input the parameters of the system (impedences, mutuals, sources) and outputs the linear system to be solved leaving the choice of solver to the user.
-In order to allow optimization of the system ElecSolver now gives the possibility to backpropagate gradients from the linear system to the parameters of the system. This allows to use ElecSolver in a optimization loop where one wants to optimize the parameters of the system with gradient descent for instance.
+
+As we said in the introduction, ElecSolver is roughly a function that takes as an input the graph-based description of an electric system and outputs the linear system to solve:
+
+$$f_{\text{ElecSolver}}(R,C,L,M,I,V,G) = (S,b)$$
+
+
+In order to allow optimization of the system, ElecSolver now gives the possibility to backpropagate gradients from the linear system to the parameters of the system (i.e., by giving $\frac{\partial R}{\partial S}$, $\frac{\partial R}{\partial b}$, $\frac{\partial C}{\partial S}$, $\frac{\partial C}{\partial b}$, etc.). This allows one to use ElecSolver in an optimization loop where one wants to optimize the parameters of the system with gradient descent, for instance.
 
 ### Example of backpropagation of TemporalSystemBuilder
-We want to optimize the capacity values of the system in order to reach a target solution for the first time step.
+In this example, we want to optimize the capacity values of the system in order to reach a measured target current for `t=0.8`.
 We can do this by backpropagating the gradients from the solution of the linear system to the capa_data array of the TemporalSystemBuilder instance.
 ```python
 import numpy as np
@@ -457,7 +467,7 @@ np.testing.assert_allclose(elec_sys.capa_data, np.array([0.1,1],dtype=float))
 The function `backpropagate_gradients` of TemporalSystemBuilder allows to backpropagate gradients from `S_init`, `S1`, `S2` and `rhs`. See tests.test_gradients for more examples of backpropagation of gradients from different systems.
 
 ### Example of backpropagation of FrequencySystemBuilder
-We want to optimize the value of a tension source in order to reach a target solution for the frequencial response of the system.
+We want to optimize the value of a tension source in order to reach a target solution for the frequency response of the system.
 ```python
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -485,7 +495,7 @@ sol = spsolve(sys.tocsr(),b.todense())
 ## Target solution when voltage_source_data = np.array([5],dtype=complex)
 sol_target = np.array([-1.66666667+1.66666667j, -0.83333333+1.66666667j, 0.83333333-1.66666667j, 2.5-3.33333333j, 0.+0.j, 5+0.j, 4.16666667+1.66666667j])
 for i in range(3000):
-    ## computing gradients
+    ## computing gradients of the squared error between sol and sol_target with respect to the second member b of the system (the one that contains the voltage source data)
     db = 2*spsolve(sys.tocsr().conj().T, sol - sol_target)
     drhs = db[b.row]
     ## Backpropagate gradients from drhs to voltage_source_data
@@ -499,4 +509,7 @@ for i in range(3000):
 ## Checking whether we converged to the right solution
 np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5],dtype=complex))
 ```
+The function `backpropagate_gradients` of FrequencySystemBuilder allows to backpropagate gradients from `S`, and `rhs`. See tests.test_gradients for more examples of backpropagation of gradients from different systems.
 
+### Conclusion on gradient backpropagation
+Although it provides the backpropagation feature, ElecSolver does not provide an automatic differentiation mechanism. Many libraries can be used to this extent, such as `autograd` or `jax`, to avoid the hassle of computing gradients manually. ElecSolver aims to limit its dependencies to increase its versatility and remain a simple, user-friendly tool.

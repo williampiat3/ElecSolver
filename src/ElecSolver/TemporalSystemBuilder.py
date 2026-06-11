@@ -587,3 +587,34 @@ class TemporalSystemBuilder():
                 np.array([],dtype=float)
             )
 
+    def build_vector_from_intensity_and_voltage(self,solution:SolutionTemporal):
+        """Utility function to build the solution vector from the different components of the solution. Useful for building a target vector for gradient backpropagation
+
+        Parameters
+        ----------
+        solution : SolutionTemporal
+            object containing all the components of the solution
+
+        Returns
+        -------
+        sol: np.array of shape (*, self.number_intensities+self.size)
+            array containing as many solutions as wanted
+        """
+        sign = np.sign(self.all_coords[1]-self.all_coords[0])
+        offset_coil = self.coil_data.shape[0]
+        offset_res = self.res_data.shape[0]
+        offset_capa = self.capa_data.shape[0]
+        if self.source_count!=0:
+            return np.concatenate((solution.coil_intensities*sign[:offset_coil],
+                solution.res_intensities*sign[offset_coil:offset_coil+offset_res],
+                solution.capa_intensities*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                solution.voltages,
+                solution.source_intensities*sign[offset_coil+offset_res+offset_capa:offset_coil+offset_res+offset_capa+self.source_count]
+            ),axis=solution.voltages.ndim-1)
+        else:
+            return np.concatenate((solution.coil_intensities*sign[:offset_coil],
+                solution.res_intensities*sign[offset_coil:offset_coil+offset_res],
+                solution.capa_intensities*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                solution.voltages
+            ),axis=solution.voltages.ndim-1)
+

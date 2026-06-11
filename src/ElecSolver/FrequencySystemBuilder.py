@@ -368,15 +368,39 @@ class FrequencySystemBuilder():
 
 
     def build_intensity_and_voltage_from_vector(self,sol):
+        """Function to build a more readable solution from the raw solution of the system"""
         sign = np.sign(self.all_coords[1]-self.all_coords[0])
         if self.source_count!=0:
-            return SolutionFrequency(sol[:self.number_intensities-self.source_count]*sign[:self.number_intensities-self.source_count],
-                    sol[self.number_intensities:],
+            return SolutionFrequency(sol[...,:self.number_intensities-self.source_count]*sign[:self.number_intensities-self.source_count],
+                    sol[...,self.number_intensities:],
                     sol[...,self.number_intensities-self.source_count:self.number_intensities]*sign[self.number_intensities-self.source_count:self.number_intensities]
                     )
 
         else:
-            return SolutionFrequency(sol[:self.number_intensities]*sign,
-                    sol[self.number_intensities:],
+            return SolutionFrequency(sol[...,:self.number_intensities]*sign,
+                    sol[...,self.number_intensities:],
                     np.array([],dtype=float)
                     )
+    def build_vector_from_intensity_and_voltage(self,solution: SolutionFrequency):
+        """Function to build a solution vector from a SolutionFrequency named tuple, useful for building target vectors for gradients backpropagation
+
+        Parameters
+        ----------
+        solution : SolutionFrequency
+            object containing all the components of the solution
+
+        Returns
+        -------
+        sol: np.array of shape (*, self.number_intensities+self.size)
+            array containing as many solutions as wanted
+        """
+        sign = np.sign(self.all_coords[1]-self.all_coords[0])
+        if self.source_count!=0:
+            return np.concatenate((solution.intensities*sign[:self.number_intensities-self.source_count],
+                    solution.potentials,
+                    solution.intensities_sources*sign[self.number_intensities-self.source_count:self.number_intensities]
+                    ),axis=solution.intensities.ndim-1)
+        else:
+            return np.concatenate((solution.intensities*sign,
+                    solution.potentials
+                    ),axis=solution.intensities.ndim-1)
