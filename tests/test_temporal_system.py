@@ -148,9 +148,9 @@ def test_one_shot_temporal():
     elec_sys.set_ground(0)
     elec_sys.build_system()
 
-    S_i,b = elec_sys.get_init_system()
+    S_i,b = elec_sys.get_init_system(sparse_rhs=False)
     sol = spsolve(S_i.tocsr(),b)
-    S1,S2,rhs = elec_sys.get_system()
+    S1,S2,rhs = elec_sys.get_system(sparse_rhs=False)
     dt=0.08
     nb_timesteps=100
     ## build big system for no for loop!

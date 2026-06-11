@@ -308,17 +308,17 @@ def test_optim_current_sources():
 
     S_i,rhs = elec_sys.get_init_system(sparse_rhs=True)
     sol =spsolve(S_i.tocsr(),rhs.todense())
-    ## Solution when current_sources_data = np.array([8],dtype=float)
+    ## Solution when current_source_data = np.array([8],dtype=float)
     sol_target = np.array([ 0.,  0., -4., -4.,  4., -4.,  0.,  4.,  0.,  4.])
     for i in range(1000):
         ## computing gradients (source information is in the rhs of the system)
         db = 2*spsolve(S_i.tocsr().T, sol - sol_target)
         drhs = db[rhs.row]
-        ## backpropagation of gradients to current_sources_data
+        ## backpropagation of gradients to current_source_data
         gradients = elec_sys.get_gradients(drhs=drhs)
-        elec_sys.current_sources_data = elec_sys.current_sources_data - 0.01*gradients.current_sources_data
+        elec_sys.current_source_data = elec_sys.current_source_data - 0.01*gradients.current_source_data
         elec_sys.build_system()
         S_i,rhs = elec_sys.get_init_system(sparse_rhs=True)
         sol = spsolve(S_i.tocsr(),rhs.todense())
     ## Checking whether we converged to the right solution
-    np.testing.assert_allclose(elec_sys.current_sources_data, np.array([8],dtype=float))
+    np.testing.assert_allclose(elec_sys.current_source_data, np.array([8],dtype=float))
