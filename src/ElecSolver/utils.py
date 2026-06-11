@@ -5,7 +5,8 @@ from collections import namedtuple
 SolutionFrequency = namedtuple("ComplexSolution",["intensities","potentials","intensities_sources"])
 SolutionTemporal = namedtuple("RealSolution",["intensities_coil","intensities_res","intensities_capa","potentials","intensities_sources"])
 
-GradientsParameters = namedtuple("GradientsParameters",["coil_data","res_data","capa_data","inductive_mutual_data","res_mutual_data","voltage_source_data","current_source_data"])
+GradientsParametersFrequency= namedtuple("GradientsParametersFrequency",["impedence_data","mutual_data","voltage_source_data","current_source_data"])
+GradientsParametersTemporal = namedtuple("GradientsParametersTemporal",["coil_data","res_data","capa_data","inductive_mutual_data","res_mutual_data","voltage_source_data","current_source_data"])
 
 def parallel_sum(*impedences):
     """Function to compute the graph of impedences resulting from // graphs

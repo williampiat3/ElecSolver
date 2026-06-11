@@ -5,7 +5,6 @@ from ElecSolver import FrequencySystemBuilder
 
 
 def test_sys_general_coo_build():
-    jw = 5j
     ## sparse python res matrix
     impedence_coords = np.array([[0,0,1],[1,2,2]],dtype=int)
     impedence_data = np.array([1,1,1],dtype=complex)
