@@ -50,7 +50,7 @@ For now this package is distributed on pypi and can be installed using pip and c
 ```
 pip install ElecSolver
 ```
-or 
+or
 ```
 conda install elecsolver
 ```
@@ -82,7 +82,7 @@ This class handles **frequency-domain** analysis of linear electric systems.
 #### Example
 
 We would like to study the following system:
-![Multiple system](img/schema.png)
+![Multiple system](docs/img/schema.png)
 
 this can simply be defined in the following manner (We took R=1, L=1 and M=2):
 ```python
@@ -128,7 +128,7 @@ print(frequencial_response.potentials[3]-frequencial_response.potentials[4])
 ```
 #### Adding a Parallel Resistance
 We want to add components in parallel with existing components for instance inserting a resistor in parallel with the first inductance (between nodes 0 and 2)
-![Parallel system](img/schema3.png)
+![Parallel system](docs/img/schema3.png)
 
 In python, simply add the resistance to the list of impedence in the very first lines of the script:
 
@@ -165,7 +165,7 @@ This class models **time-dependent** systems using resistors, capacitors, coils,
 
 
 We would like to study the following system:
-![Temporal system](img/schema2.png)
+![Temporal system](docs/img/schema2.png)
 
 with R=1, L=0.1, C=2 this gives:
 
@@ -228,7 +228,7 @@ plt.savefig("intensities_res.png")
 ```
 
 This outputs the following graph that displays the intensity passing through the resistances
-![Temporal system](img/intensities_res.png)
+![Temporal system](docs/img/intensities_res.png)
 
 
 ## Solver suggestions
@@ -247,7 +247,7 @@ This repository can be used as is in order to model the mass flow or thermal flu
 
 We are considering the following hydraulic problem:
 
-![Hydraulic system](img/hydraulic.png)
+![Hydraulic system](docs/img/hydraulic.png)
 
 Taking R=1 this gives
 
