@@ -18,7 +18,7 @@ We would like to study the following system:
 
 With `R=1`, `L=0.1`, `C=2` this gives:
 
-```python
+``` py
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse.linalg import spsolve
@@ -106,7 +106,7 @@ This makes it possible to optimize circuit parameters with gradient descent in l
 
 In this example, we optimize `capa_data` so the solution at `t=0.8` matches a target response.
 
-```python
+``` py
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import TemporalSystemBuilder

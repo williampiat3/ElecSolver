@@ -22,7 +22,7 @@ We would like to study the following system:
 
 This can be defined in the following manner. We took `R=1`, `L=1` and `M=2`.
 
-```python
+``` py
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import FrequencySystemBuilder
@@ -73,7 +73,7 @@ We want to add components in parallel with existing components, for instance ins
 
 In Python, simply add the resistance to the list of impedances in the first lines of the script:
 
-```python
+``` py
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import FrequencySystemBuilder
@@ -98,7 +98,7 @@ This enables gradient-based optimization loops directly on source values or comp
 
 In this example, we optimize the voltage source value so the system response matches a target solution.
 
-```python
+``` py
 import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import FrequencySystemBuilder
