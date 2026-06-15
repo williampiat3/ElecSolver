@@ -1,0 +1,22 @@
+[project]
+site_name = "ElecSolver"
+site_description = "Formalizes electric systems as linear problems for temporal and frequency-domain studies."
+site_author = "William Piat"
+repo_url = "https://github.com/williampiat3/ElecSolver"
+repo_name = "GitHub"
+docs_dir = "docs"
+site_dir = "site"
+
+nav = [
+  "index.md",
+  { Components = [
+    "components/frequency-system-builder.md",
+    "components/temporal-system-builder.md",
+  ] },
+  "solver-suggestions.md",
+  "extra-uses-hydraulic-or-thermal-system-modeling.md",
+  "netlist-import-feature.md",
+]
+
+[project.theme]
+name = "zensical"
