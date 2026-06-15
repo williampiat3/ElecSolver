@@ -25,6 +25,14 @@ extra_javascript = [
 [project.markdown_extensions.pymdownx.arithmatex]
 generic = true
 
+[project.markdown_extensions.admonition]
+
+[project.markdown_extensions.pymdownx.highlight]
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+
+[project.markdown_extensions.pymdownx.superfences]
+
 [project.theme]
 name = "zensical"
 features = [
