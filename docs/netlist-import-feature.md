@@ -28,14 +28,19 @@ node_zero = parser.node_map["0"]
 node_one = parser.node_map["1"]
 
 elec_sys = parser.generate_temporal_system()
+## Set 10 A injection entering in node 1 and exiting in node 0
 elec_sys.add_current_source(10, node_one, node_zero)
+## Setting ground at point 0
 elec_sys.set_ground(node_zero)
-elec_sys.build_system()
-
+## Build systems
+elec_sys.build_system(sparse_rhs=False)
+## Get initial condition system
 S_i, b = elec_sys.get_init_system()
 sol = spsolve(S_i.tocsr(), b)
+## get system (S1 is real part, S2 derivative part)
 S1, S2, rhs = elec_sys.get_system()
 
+## Solving using euler implicit scheme
 dt = 0.08
 steps = 50
 vals_res1 = []
@@ -55,6 +60,7 @@ for i in range(steps):
     voltage_src.append(
         temporal_response.potentials[node_one] - temporal_response.potentials[node_zero]
     )
+    ## implicit euler time iterations
     sol = spsolve(S2 + dt * S1, b * dt + S2 @ sol)
 
 plt.xlabel("Time")
