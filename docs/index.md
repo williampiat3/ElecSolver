@@ -10,9 +10,16 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
-Its main goal is to provide a friendly Python interface for simulating analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
+In a very simple way, ElecSolver takes as an input the Resistances $R$, Capacitances $C$, Inductances $L$, Mutuals $M$, Current sources $I$  and Voltage sources $V$ along with the connectivity graph $G$ of the system and outputs the linear system: matrix $S$ and vector $b$ to solve in order to get the solution of the electric problem.
 
-!!! warning
+$$f_{\text{ElecSolver}}(R,C,L,M,I,V,G) = (S,b)$$
+
+It is then up to the user to choose the solver they want for solving the system $Sx=b$ and to manage the time iterations if needed for temporal problems.
+
+The main goal of ElecSolver is to provide a friendly Python interface for simulating and optimizing analog electric systems. While suitable for small circuit simulations, its strength lies in its scalability: it is able to build linear systems with millions of nodes and components.
+
+
+!!! tip
 
     ElecSolver has been designed with the following specifications in mind:
 
@@ -20,8 +27,9 @@ Its main goal is to provide a friendly Python interface for simulating analog el
     - Handle natively inductive mutuals and resistive mutuals.
     - Handle as many coupled electric systems as needed.
     - Deal with lonely nodes and lonely edges in the electric graph when the problem is still well posed.
+    - Allow backpropagation of gradients through the system for optimization purposes.
 
-!!! note
+!!! warning
 
     Non-linear components are not supported. You must manage event detection and system updates yourself.
 
@@ -47,12 +55,12 @@ conda install python-mumps
 
 ## Components
 
-The documentation is organized around the same component split as the README:
+The documentation presents the two main components of ElecSolver:
 
 - [FrequencySystemBuilder](components/frequency-system-builder.md)
 - [TemporalSystemBuilder](components/temporal-system-builder.md)
 
-Then follow the same supporting sections:
+Then presents extra features:
 
 - [Solver suggestions](solver-suggestions.md)
 - [Extra uses: Hydraulic or Thermal system modeling](extra-uses-hydraulic-or-thermal-system-modeling.md)
