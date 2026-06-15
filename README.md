@@ -33,18 +33,9 @@ The main goal of ElecSolver is to provide a friendly Python interface for simula
 > [!NOTE]
 > Non-linear components are not supported. You must manage event detection and system updates yourself.
 
+## Documentation
 
-## Table of contents
-
-- [ElecSolver](#elecsolver)
-  - [Overview](#overview)
-  - [Table of contents](#table-of-contents)
-  - [How to install](#how-to-install)
-    - [Using pip](#using-pip)
-    - [Using conda/mamba](#using-condamamba)
-    - [From source](#from-source)
-  - [Documentation](#documentation)
-
+The documentation is available in the `docs` folder and can be built using `zensical`. You can also view the documentation online at [https://williampiat3.github.io/ElecSolver/](https://williampiat3.github.io/ElecSolver/).
 
 
 ## How to install
@@ -69,6 +60,3 @@ pip install .
 ```
 you will need to have `numpy`, `scipy` and `networkx` installed in your environment
 
-## Documentation
-
-The documentation is available in the `docs` folder and can be built using `zensical`. You can also view the documentation online at [https://williampiat3.github.io/ElecSolver/](https://williampiat3.github.io/ElecSolver/).
