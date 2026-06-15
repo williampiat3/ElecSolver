@@ -160,3 +160,7 @@ np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5], dtype
 ```
 
 For additional backpropagation examples, see `tests/test_gradients.py`.
+
+!!! note
+
+    Although providing the backpropagation feature, ElecSolver does not provide an automatic differentiation mechanism. You may use and wrap Elecsolver in automatic differentiation libraries, such as `autograd`, `jax`, `PyTorch` and many more, to avoid the hassle of computing gradients manually.

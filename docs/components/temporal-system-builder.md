@@ -175,8 +175,8 @@ for _ in range(1000):
     ## computing gradients
     dB = 2 * spsolve(A.T, sol - sol_target)
     ## chain rule for gradients of capa_data (S2 appears twice in the computation graph)
-    dS2 = -(dB[S2.row] * sol[S2.col])
-    dS2 += dB[S2.row] * sol_init[S2.col]
+    dS2 = -(dB[S2.row] * sol[S2.col]) ## Gradient from the solver (A\B) to S2
+    dS2 += dB[S2.row] * sol_init[S2.col] ## Gradient from the solver (A\B) to S2 through B
 
     ## Backpropagate gradients from dS2 to capa_data
     gradients = elec_sys.backpropagate_gradients(dS2=dS2)
@@ -196,3 +196,7 @@ np.testing.assert_allclose(elec_sys.capa_data, np.array([0.1, 1], dtype=float))
 ```
 
 For additional backpropagation examples, see `tests/test_gradients.py`.
+
+!!! note
+
+    Although providing the backpropagation feature, ElecSolver does not provide an automatic differentiation mechanism. You may use and wrap Elecsolver in automatic differentiation libraries, such as `autograd`, `jax`, `PyTorch` and many more, to avoid the hassle of computing gradients manually.
