@@ -87,3 +87,76 @@ impedence_data = np.array([1, 1j, 1, 1j, 1], dtype=complex)
 mutuals_coords = np.array([[1], [3]], dtype=int)
 mutuals_data = np.array([2.0j], dtype=complex)
 ```
+
+## Gradient Backpropagation
+
+`FrequencySystemBuilder` can backpropagate gradients from `S` and `rhs` to model parameters.
+
+This enables gradient-based optimization loops directly on source values or component data.
+
+### Example: Optimize a Voltage Source
+
+In this example, we optimize the voltage source value so the system response matches a target solution.
+
+```python
+import numpy as np
+from scipy.sparse.linalg import spsolve
+from ElecSolver import FrequencySystemBuilder
+
+## sparse python res matrix
+impedence_coords = np.array([[0, 0, 1], [1, 2, 2]], dtype=int)
+impedence_data = np.array([1, 1, 1], dtype=complex)
+
+## mutuals
+mutuals_coords = np.array([[0], [1]], dtype=int)
+mutuals_data = np.array([2.0j], dtype=complex)
+
+electric_sys = FrequencySystemBuilder(
+    impedence_coords,
+    impedence_data,
+    mutuals_coords,
+    mutuals_data,
+)
+
+# Target solution is the solution of the system when voltage=5
+electric_sys.add_voltage_source(voltage=10, input_node=1, output_node=0)
+electric_sys.set_ground(0)
+electric_sys.build_system()
+
+## Getting system
+sys, b = electric_sys.get_system(sparse_rhs=True)
+sol = spsolve(sys.tocsr(), b.todense())
+
+# Target solution (artificially made by setting voltage_source_data = np.array([5], dtype=complex))
+sol_target = np.array([
+    -1.66666667 + 1.66666667j,
+    -0.83333333 + 1.66666667j,
+    0.83333333 - 1.66666667j,
+    2.5 - 3.33333333j,
+    0.0 + 0.0j,
+    5.0 + 0.0j,
+    4.16666667 + 1.66666667j,
+])
+
+for _ in range(3000):
+    ## Computing gradients of squared error with respect to b
+    db = 2 * spsolve(sys.tocsr().conj().T, sol - sol_target)
+    drhs = db[b.row]
+
+    ## Backpropagate gradients from drhs to voltage_source_data
+    gradients = electric_sys.backpropagate_gradients(drhs=drhs)
+    ## Performing gradient descent on voltage_source_data
+    electric_sys.voltage_source_data = (
+        electric_sys.voltage_source_data - 0.01 * gradients.voltage_source_data
+    )
+
+    ## After updating voltage_source_data, rebuild the system to update sys and b
+    electric_sys.build_system()
+    sys, b = electric_sys.get_system(sparse_rhs=True)
+    sol = spsolve(sys.tocsr(), b.todense())
+
+## Checking whether we converged to the right solution
+np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5], dtype=complex))
+```
+
+For additional backpropagation examples, see `tests/test_gradients.py`.
