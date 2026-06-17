@@ -39,23 +39,29 @@ The documentation is available in the `docs` folder and can be built using `zens
 
 
 ## How to install
+### Using `spack` (recommended)
+The recommended way of installing `ElecSolver` is `spack` since `spack` provides a MUMPS solver (and its python bindings `python-mumps`) optimized for your platform.
+
+```bash
+spack install py-elecsolver py-python-mumps
+```
 ### Using pip
 ElecSolver is distributed on PyPI and can be installed using pip or conda/mamba.
-```
+```bash
 pip install ElecSolver
 ```
 ### Using conda/mamba
 ElecSolver is also available on conda-forge and can be installed using conda or mamba:
-```
+```bash
 conda install elecsolver
 ```
 For solving linear systems, we advise using MUMPS through `python-mumps`, available for Linux, macOS, and Windows. It can be installed via conda:
-```
+```bash
 conda install python-mumps
 ```
 ### From source
 You can also install ElecSolver from source by cloning the repository and running:
-```
+```bash
 pip install .
 ```
 you will need to have `numpy`, `scipy` and `networkx` installed in your environment
