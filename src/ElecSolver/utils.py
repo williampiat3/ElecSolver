@@ -117,7 +117,7 @@ def constant_block_diag(A,repetitions):
     data = np.tile(A.data,(repetitions,))
     return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
 
-def compute_graph_compontents(all_coords):
+def compute_graph_components(all_coords):
     """Function to computed connected components of a graph given by its coordinates
     
     Parameters
