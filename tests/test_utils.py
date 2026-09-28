@@ -8,7 +8,7 @@ def test_block_diag():
 
 def test_graph_components():
     all_coords = np.array([[0,1],[1,2],[3,4]])
-    components = compute_graph_compontents(all_coords)
+    components = compute_graph_components(all_coords)
     assert len(components)==2
     assert np.all(components[0]==np.array([0,1,2]))
     assert np.all(components[1]==np.array([3,4]))
