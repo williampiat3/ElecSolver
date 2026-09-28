@@ -117,6 +117,39 @@ def constant_block_diag(A,repetitions):
     data = np.tile(A.data,(repetitions,))
     return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
 
+def compute_graph_compontents(all_coords):
+    """Function to computed connected components of a graph given by its coordinates
+    
+    Parameters
+    ----------
+    all_coords : np.array
+        array of shape (n_edges,2) containing the coordinates of the edges of the graph 
+
+    Returns
+    -------
+    list of np.array
+        list of arrays containing the indexes of the nodes in each connected component
+    
+    """
+    number_of_nodes = np.max(all_coords)+1
+    number_of_edges = all_coords.shape[0]
+    ## intialize the roots of each node to itself
+    roots = np.arange(0,number_of_nodes,dtype=int)
+    ## make each point point to its minimum neighbor
+    for i in range(number_of_edges):
+        min_value = min(all_coords[i,0],all_coords[i,1])
+        roots[all_coords[i,0]] = min(min_value,roots[all_coords[i,0]])
+        roots[all_coords[i,1]] = min(min_value,roots[all_coords[i,1]])
+
+    converged = False
+    while not converged:
+        previous_roots = roots.copy()
+        roots = roots[roots]
+        converged = np.all(previous_roots==roots)
+
+    return [np.arange(0,number_of_nodes,dtype=int)[roots==i] for i in np.unique(roots)]
+
+
 
 
 def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
