@@ -27,6 +27,7 @@ The main goal of `ElecSolver` is to provide a friendly Python interface for simu
     - Handle natively inductive mutuals and resistive mutuals.
     - Handle as many coupled electric systems as needed.
     - Deal with lonely nodes and lonely edges in the electric graph when the problem is still well posed.
+    - Have minimal dependencies to simplify installation and usage (only scipy and numpy)
     - Allow backpropagation of gradients through the system for optimization purposes.
 
 !!! warning
