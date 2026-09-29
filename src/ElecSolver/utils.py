@@ -123,7 +123,7 @@ def compute_graph_components(all_coords):
     Parameters
     ----------
     all_coords : np.array
-        array of shape (n_edges,2) containing the coordinates of the edges of the graph 
+        array of shape (2,n_edges) containing the coordinates of the edges of the graph 
 
     Returns
     -------
@@ -132,14 +132,14 @@ def compute_graph_components(all_coords):
     
     """
     number_of_nodes = np.max(all_coords)+1
-    number_of_edges = all_coords.shape[0]
+    number_of_edges = all_coords.shape[1]
     ## intialize the roots of each node to itself
     roots = np.arange(0,number_of_nodes,dtype=int)
     ## make each point point to its minimum neighbor
     for i in range(number_of_edges):
-        min_value = min(all_coords[i,0],all_coords[i,1])
-        roots[all_coords[i,0]] = min(min_value,roots[all_coords[i,0]])
-        roots[all_coords[i,1]] = min(min_value,roots[all_coords[i,1]])
+        min_value = min(all_coords[0,i],all_coords[1,i])
+        roots[all_coords[0,i]] = min(min_value,roots[all_coords[0,i]])
+        roots[all_coords[1,i]] = min(min_value,roots[all_coords[1,i]])
 
     converged = False
     while not converged:
