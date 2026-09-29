@@ -112,6 +112,29 @@ class TemporalSystemBuilder():
         ## State -> analysed
         self.analysed=True
 
+    def get_nx_graph(self):
+        """Function to get the networkx graph representation of the system
+        This functions imports networkx in the function itself to avoid requiring it as a global dependency.
+        It needs to be ran
+
+        Returns
+        -------
+        networkx.Graph
+            The networkx graph representation of the system
+        """
+        import networkx as nx
+        ## Running graph analysis if not done to make sure that self.all_coords is available
+        ## Technically we could avoid running the analysis but for avoiding code duplicates and unicity of definition of all_coords
+        if not self.analysed:
+            self.graph_analysis()
+
+        unique_coords = np.unique(self.all_coords,axis=1)
+        sym_graph = np.concatenate((unique_coords,np.stack((unique_coords[1],unique_coords[0]),axis=0)),axis=1)
+        links = np.ones(sym_graph.shape[1])
+        graph =  nx.from_scipy_sparse_array(coo_matrix((links,(sym_graph[0],sym_graph[1]))))
+        return graph
+
+
     def set_ground(self,*args):
         """Function to affect a ground to subsystems
         If the system already has a ground provided then a warning is displayed and ground reaffected

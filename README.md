@@ -64,5 +64,5 @@ You can also install ElecSolver from source by cloning the repository and runnin
 ```bash
 pip install .
 ```
-you will need to have `numpy`, `scipy` and `networkx` installed in your environment
+you will need to have `numpy` and `scipy` installed in your environment
 
