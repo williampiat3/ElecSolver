@@ -1,7 +1,6 @@
 import numpy as np
-import networkx as nx
 from scipy.sparse import coo_matrix, block_diag, coo_array
-from .utils import SolutionTemporal,GradientsParametersTemporal
+from .utils import SolutionTemporal,GradientsParametersTemporal,compute_graph_components
 import warnings
 
 class TemporalSystemBuilder():
@@ -85,13 +84,8 @@ class TemporalSystemBuilder():
         self.size = np.max(self.all_coords)+1
         # number of intensities
         self.number_intensities = self.all_impedences.shape[0]
-        ## making graph and checking number of subgraphs for ground enforcing and intensity checking
-        unique_coords = np.unique(self.all_coords,axis=1)
-        sym_graph = np.concatenate((unique_coords,np.stack((unique_coords[1],unique_coords[0]),axis=0)),axis=1)
-        links = np.ones(sym_graph.shape[1])
-        self.graph =  nx.from_scipy_sparse_array(coo_matrix((links,(sym_graph[0],sym_graph[1]))))
         ## keep the subgraphs
-        self.list_of_subgraphs = [ list(sub) for sub in nx.connected_components(self.graph)]
+        self.list_of_subgraphs = [ list(sub) for sub in compute_graph_components(self.all_coords)]
         self.number_of_subsystems = len(self.list_of_subgraphs)
         ## location of ground
         ## If analysis was already performed we take the previous grounds and try to reassign them to the system
