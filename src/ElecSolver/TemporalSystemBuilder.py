@@ -115,7 +115,6 @@ class TemporalSystemBuilder():
     def get_nx_graph(self):
         """Function to get the networkx graph representation of the system
         This functions imports networkx in the function itself to avoid requiring it as a global dependency.
-        It needs to be ran
 
         Returns
         -------
