@@ -119,7 +119,7 @@ class FrequencySystemBuilder():
         The equations are ordered as follows:
 
         - node laws (N-k equations)
-        - Kirchhoff laws (M equations)
+        - impedance equations (M equations)
         - ground equations (k equations)
         - voltage sources equations (s equations)
 
