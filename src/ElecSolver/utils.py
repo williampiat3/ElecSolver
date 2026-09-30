@@ -9,13 +9,17 @@ GradientsParametersFrequency= namedtuple("GradientsParametersFrequency",["impede
 GradientsParametersTemporal = namedtuple("GradientsParametersTemporal",["coil_data","res_data","capa_data","inductive_mutual_data","res_mutual_data","voltage_source_data","current_source_data"])
 
 def parallel_sum(*impedences):
-    """Function to compute the graph of impedences resulting from // graphs
-    works for any number of impedence graphs
+    """Combine any number of impedance graphs in parallel.
+
+    Parameters
+    ----------
+    *impedences : scipy.sparse.coo_matrix
+        Sparse impedance matrices to combine.
 
     Returns
     -------
     scipy.sparse.coo_matrix
-        resulting impedence
+        Resulting impedance matrix.
     """
     coords_tot = np.concatenate([impedence.coords for impedence in impedences],axis=1)
     data_tot = np.concatenate([impedence.data for impedence in impedences])
@@ -52,37 +56,41 @@ def parallel_sum(*impedences):
 
 
 def serie_sum(*impedences):
-    """Function to compute the impedences that go serial
+    """Combine any number of impedance matrices in series.
+
+    Parameters
+    ----------
+    *impedences : scipy.sparse.coo_matrix
+        Sparse impedance matrices to combine.
 
     Returns
     -------
     scipy.sparse.coo_matrix
-        resulting impedence
-
+        Resulting impedance matrix.
     """
     return sum(impedences).tocoo()
 
 
 def cast_complex_system_in_real_system(sys,b):
-    """Function to cast an n dimensional complex system into an
-    equivalent 2n dimension real system
-    the solution of the initial system is the concatenation of the real and
-    imaginary part of the solution of this system:
-    sol_comp = sol_real[:n]+1.0j*sol_real[n:]
+    """Convert an ``n``-dimensional complex system to a real system.
+
+    The equivalent real system has dimension ``2n``. The original complex
+    solution can be reconstructed as
+    ``sol_real[:n] + 1.0j * sol_real[n:]``.
 
     Parameters
     ----------
-    sys : scipy.sparse.coo_matric
-        system with complex data
-    b : np.array
-        second member with real or complex values
+    sys : scipy.sparse.coo_matrix, shape (n, n)
+        System matrix with complex data.
+    b : numpy.ndarray, shape (n,)
+        Right-hand side with real or complex values.
 
     Returns
     -------
-    sys_comp
-        real system equivalent to complex system
-    new_b
-        real second member equivalent to complex system
+    sys_comp : scipy.sparse.coo_matrix, shape (2n, 2n)
+        Real system equivalent to the complex system.
+    new_b : numpy.ndarray, shape (2n,)
+        Real right-hand side equivalent to the complex right-hand side.
     """
     coords = np.stack((sys.row,sys.col),axis=0)
     data = np.array(sys.data,dtype=complex)
@@ -95,20 +103,22 @@ def cast_complex_system_in_real_system(sys,b):
 
 
 def constant_block_diag(A,repetitions):
-    """Function to repeat the matrix A multiple times along the diagonal
-    This is a faster version of block_diag in the case of having always the same block
+    """Repeat a matrix along the diagonal.
+
+    This is faster than a general block-diagonal construction when every block
+    is identical.
 
     Parameters
     ----------
-    A : scpiy.sparse.coo_matrix
-        block to repeat multiple times on the diagonal
+    A : scipy.sparse.coo_matrix, shape (n, n)
+        Block to repeat along the diagonal.
     repetitions : int
-        number of repetitions to perform
+        Number of repetitions.
 
     Returns
     -------
-    coo_matrix
-        block diagonal sparse matrix
+    scipy.sparse.coo_matrix, shape (repetitions * n, repetitions * n)
+        Block-diagonal sparse matrix.
     """
     size = A.shape[0]
     indexes = A.data.shape[0]
@@ -118,33 +128,34 @@ def constant_block_diag(A,repetitions):
     return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
 
 def compute_graph_components(all_coords):
-    """Function to computed connected components of a graph given by its coordinates
-    
+    """Compute graph components from edge coordinates.
+
     Parameters
     ----------
-    all_coords : np.array
-        array of shape (2,n_edges) containing the coordinates of the edges of the graph 
+    all_coords : numpy.ndarray, shape (2, n_edges)
+        Node indices for each graph edge.
 
     Returns
     -------
-    list of np.array
-        list of arrays containing the indexes of the nodes in each connected component
-    
+    list of numpy.ndarray
+        Node indices in each connected component.
     """
     number_of_nodes = np.max(all_coords)+1
     number_of_edges = all_coords.shape[1]
-    ## intialize the roots of each node to itself
+    # Initialize the root of each node to itself.
     roots = np.arange(0,number_of_nodes,dtype=int)
-    ## make each point point to its minimum neighbor
+    # Make each point refer to its lowest-index neighbor.
     for i in range(number_of_edges):
         min_value = min(all_coords[0,i],all_coords[1,i])
         roots[all_coords[0,i]] = min(min_value,roots[all_coords[0,i]])
         roots[all_coords[1,i]] = min(min_value,roots[all_coords[1,i]])
 
     converged = False
+    # Iteratively update each node to point to the root of its component.
     while not converged:
         previous_roots = roots.copy()
         roots = roots[roots]
+        # Converged when no roots have changed in this iteration.
         converged = np.all(previous_roots==roots)
 
     return [np.arange(0,number_of_nodes,dtype=int)[roots==i] for i in np.unique(roots)]
@@ -153,31 +164,33 @@ def compute_graph_components(all_coords):
 
 
 def build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps):
-    """Function to build the temporal system for nb_timesteps
-    The solution of this system is the concatenation of the all the timsteps
-    except for the initial timestep that the user is free to concatenate with the solutions
-    Tip: reshaping the solution of the systme with shape (nb_timesteps,sol.shape[0]) provides
-    the solution array indexed by the timestep
+    """Build a temporal system over multiple time steps.
+
+    The solution concatenates all time steps except the initial one. Reshaping
+    it to ``(nb_timesteps, sol.shape[0])`` produces an array indexed by time
+    step.
 
     Parameters
     ----------
-    S1 : coo_matrix
-        real part of the temporal system
-    S2 : coo_matrix
-        derivative part of the temporal system
+    S1 : scipy.sparse.coo_matrix, shape (n, n)
+        Real part of the temporal system.
+    S2 : scipy.sparse.coo_matrix, shape (n, n)
+        Derivative part of the temporal system.
     dt : float
-        timestep for the simulation
-    rhs : np.array
-        second member of the system
-    sol : initial condition
-        solution of initial condition system
+        Simulation time step.
+    rhs : numpy.ndarray, shape (n,)
+        Right-hand side of the system.
+    sol : numpy.ndarray, shape (n,)
+        Initial-condition solution.
     nb_timesteps : int
-        number of timesteps
+        Number of time steps.
 
     Returns
     -------
-    S : coo_matrix
-        system left hand side for the temporal
+    S : scipy.sparse.coo_matrix, shape (nb_timesteps * n, nb_timesteps * n)
+        Left-hand side of the expanded temporal system.
+    RHS : numpy.ndarray, shape (nb_timesteps * n,)
+        Right-hand side of the expanded temporal system.
     """
     A = constant_block_diag((S2+dt*S1).tocoo(),nb_timesteps)
     B = constant_block_diag(-S2,nb_timesteps-1)
