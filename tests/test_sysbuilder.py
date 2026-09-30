@@ -110,12 +110,12 @@ def test_res_grid():
     # plt.show()
 
 def test_parallel_res():
-    # Sparse Python impedence matrix (notice coil impedence between points 0 and 2, and coil impedence between 3 and 4 )
+    # Sparse Python impedance matrix (notice coil impedance between points 0 and 2 and between points 3 and 4).
     impedence_coords = np.array([[0,0,3,1,3],[1,2,4,2,4]], dtype=int)
     impedence_data = np.array([1, 1j,1, 1, 1j], dtype=complex)
 
     # Mutual inductance or coupling
-    # The indexes here are the impedence indexes in impedence_data
+    # These indices are impedance indices in impedence_data.
     # The coupling is inductive
     mutuals_coords = np.array([[1],[4]], dtype=int)
     mutuals_data = np.array([2.j], dtype=complex)

@@ -153,7 +153,7 @@ def test_one_shot_temporal():
     S1,S2,rhs = elec_sys.get_system(sparse_rhs=False)
     dt=0.08
     nb_timesteps=100
-    ## build big system for no for loop!
+    ## Build the expanded system without a loop.
     S,RHS = build_big_temporal_system(S1,S2,dt,rhs,sol,nb_timesteps)
     ctx = Context()
     ctx.set_matrix(S)
@@ -161,7 +161,7 @@ def test_one_shot_temporal():
     ctx.factor(reuse_analysis=True)
     x = ctx.solve(RHS)
 
-    ## adding initial conditions
+    ## Add initial conditions.
     sols = np.concatenate([sol[np.newaxis],x.reshape(S.shape[0]//sol.shape[0],sol.shape[0])],axis=0)
 
 
@@ -244,7 +244,7 @@ def test_big_grid():
     S_i,b = electric_sys.get_init_system()
 
     ctx = Context()
-    ## set scotch ordering instead of METIS
+    ## Set Scotch ordering instead of METIS.
 
     ctx.set_matrix(S_i)
     ctx.analyze()
@@ -347,33 +347,33 @@ def test_hydraulic():
     res_mutual_coords=np.array([[],[]],dtype=int)
     res_mutual_data = np.array([],dtype=float)
 
-    ## initializing system
+    ## Initialize the system.
     hydraulic_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
-    ## enforcing a pressure delta of 10 Pa
+    ## Enforce a pressure difference of 10 Pa.
     hydraulic_sys.add_voltage_source(10,1,0)
-    ## Seting ground at point 0
+    ## Set the ground at point 0.
     hydraulic_sys.set_ground(0)
     ## Build second member
     hydraulic_sys.build_system()
 
     # get system (S1 is real part, S2 derivative part)
-    # the problem is only resitive thus S2 =0
+    # The problem is purely resistive, so S2 = 0.
     S1,S2,rhs = hydraulic_sys.get_system()
 
     sol = spsolve(S1.tocsr(),rhs)
     solution = hydraulic_sys.build_intensity_and_voltage_from_vector(sol)
-    # After you computed the solution of the system
+    # After computing the system solution.
 
     pressure_input=10000
     pressure_node=0
     # Rescaling the potential to the new reference
     potentials = solution.potentials - solution.potentials[pressure_node] + pressure_input
     print("Pressures in the system:", potentials)
-    ## get the flux passing through the source
+    ## Get the flux passing through the source.
     print("Debit through the system",solution.intensities_sources[0])
 
 def test_lonely_nodes():
-    ## Test to check that the system handler detect the lonely node and handles it with a warning
+    ## Check that the system handler detects the isolated node and emits a warning.
     ## Defining resistances
     res_coords  = np.array([[0],[1]],dtype=int)
     res_data = np.array([1],dtype=float)

@@ -4,7 +4,7 @@ This class handles **frequency-domain** analysis of linear electric systems.
 
 ## Features
 
-- Supports tension and intensity sources
+- Supports voltage and current sources
 - Models inductive and resistive mutuals
 - Detects and couples multiple subsystems
 - Accepts arbitrary complex impedances and mutuals
@@ -20,7 +20,7 @@ We would like to study the following system:
 
 ![Multiple system](../img/schema.png)
 
-This can be defined in the following manner. We took `R=1`, `L=1` and `M=2`.
+This can be defined in the following manner. We took `R=1`, `L=1`, and `M=2`.
 
 ``` py
 import numpy as np
@@ -29,12 +29,12 @@ from ElecSolver import FrequencySystemBuilder
 
 
 # Complex and sparse impedance matrix
-# notice coil impedence between points 0 and 2, and coil impedence between 3 and 4
+# Notice the coil impedance between points 0 and 2 and between points 3 and 4
 impedence_coords = np.array([[0, 0, 1, 3], [1, 2, 2, 4]], dtype=int)
 impedence_data = np.array([1, 1j, 1, 1j], dtype=complex)
 
 # Mutual inductance or coupling
-# The indexes here are the impedence indexes in impedence_data
+# The indices here are the impedance indices in impedence_data
 # The coupling is inductive
 mutuals_coords = np.array([[1], [3]], dtype=int)
 mutuals_data = np.array([2.0j], dtype=complex)
@@ -50,7 +50,7 @@ electric_sys = FrequencySystemBuilder(
 electric_sys.add_current_source(intensity=10, input_node=2, output_node=0)
 
 # Set ground
-# 2 values because one for each subsystem
+# Two values, one for each subsystem
 electric_sys.set_ground(0, 3)
 
 # Build system
@@ -61,7 +61,7 @@ sys, b = electric_sys.get_system()
 sol = spsolve(sys.tocsr(), b)
 frequencial_response = electric_sys.build_intensity_and_voltage_from_vector(sol)
 
-# We see a tension appearing on the lonely coil (between node 3 and 4)
+# We see a voltage across the isolated inductor (between nodes 3 and 4)
 print(frequencial_response.potentials[3] - frequencial_response.potentials[4])
 ```
 
@@ -83,7 +83,7 @@ from ElecSolver import FrequencySystemBuilder
 impedence_coords = np.array([[0, 0, 1, 3, 0], [1, 2, 2, 4, 2]], dtype=int)
 impedence_data = np.array([1, 1j, 1, 1j, 1], dtype=complex)
 
-# No need to change the couplings since indexes of the coils did not change
+# No need to change the couplings since the inductor indices did not change
 mutuals_coords = np.array([[1], [3]], dtype=int)
 mutuals_data = np.array([2.0j], dtype=complex)
 ```
@@ -103,11 +103,11 @@ import numpy as np
 from scipy.sparse.linalg import spsolve
 from ElecSolver import FrequencySystemBuilder
 
-## sparse python res matrix
+## Sparse Python resistance matrix
 impedence_coords = np.array([[0, 0, 1], [1, 2, 2]], dtype=int)
 impedence_data = np.array([1, 1, 1], dtype=complex)
 
-## mutuals
+## Mutuals
 mutuals_coords = np.array([[0], [1]], dtype=int)
 mutuals_data = np.array([2.0j], dtype=complex)
 
@@ -118,12 +118,12 @@ electric_sys = FrequencySystemBuilder(
     mutuals_data,
 )
 
-# Target solution is the solution of the system when voltage=5
+# The target is the system solution when voltage = 5
 electric_sys.add_voltage_source(voltage=10, input_node=1, output_node=0)
 electric_sys.set_ground(0)
 electric_sys.build_system()
 
-## Getting system
+## Get the system
 sys, b = electric_sys.get_system(sparse_rhs=True)
 sol = spsolve(sys.tocsr(), b.todense())
 
@@ -139,13 +139,13 @@ sol_target = np.array([
 ])
 
 for _ in range(3000):
-    ## Computing gradients of squared error with respect to b
+    ## Compute gradients of the squared error with respect to b
     db = 2 * spsolve(sys.tocsr().conj().T, sol - sol_target)
     drhs = db[b.row]
 
     ## Backpropagate gradients from drhs to voltage_source_data
     gradients = electric_sys.backpropagate_gradients(drhs=drhs)
-    ## Performing gradient descent on voltage_source_data
+    ## Perform gradient descent on voltage_source_data
     electric_sys.voltage_source_data = (
         electric_sys.voltage_source_data - 0.01 * gradients.voltage_source_data
     )
@@ -155,7 +155,7 @@ for _ in range(3000):
     sys, b = electric_sys.get_system(sparse_rhs=True)
     sol = spsolve(sys.tocsr(), b.todense())
 
-## Checking whether we converged to the right solution
+## Check whether we converged to the correct solution
 np.testing.assert_allclose(electric_sys.voltage_source_data, np.array([5], dtype=complex))
 ```
 
@@ -163,4 +163,4 @@ For additional backpropagation examples, see `tests/test_gradients.py`.
 
 !!! note
 
-    Although providing the backpropagation feature, ElecSolver does not provide an automatic differentiation mechanism. You may use and wrap Elecsolver in automatic differentiation libraries, such as `autograd`, `jax`, `PyTorch` and many more, to avoid the hassle of computing gradients manually.
+    Although ElecSolver provides backpropagation, it does not provide an automatic differentiation mechanism. You may wrap ElecSolver in automatic differentiation libraries, such as `autograd`, `jax`, and `PyTorch`, to avoid computing gradients manually.

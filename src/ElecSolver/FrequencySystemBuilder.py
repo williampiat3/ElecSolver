@@ -6,21 +6,21 @@ import warnings
 
 class FrequencySystemBuilder():
     def __init__(self,impedence_coords,impedence_data,mutual_coords,mutual_data):
-        """FrequencySystemBuilder class for building an electrical sparse system
-        that can be solved by any sparse solver
-        it supports all forms of complex making this class fit for non linear impedences
+        """Initialize a frequency-domain electrical system builder.
+
+        The builder supports complex values and general impedances.
 
         Parameters
         ----------
-        impedence_coords : np.array of ints, shape = (2,N)
-            impedence coordinates
-        impedence_data : np.array of complex, shape = (N,)
-            impedence value between points impedence_coords[:,i]
-        mutual_coords : np.array of ints, shape = (2,M)
-            indexes of the impedence within impedence data which have a mutual
-        mutual_data : np.array of complex, shape=(M,)
-            mutual value between impedences impedence_data[mutual_coords[0,i]] impedence_data[mutual_coords[1,i]]
-            The mutual follows the order given in impedence coords
+        impedence_coords : numpy.ndarray, shape (2, N)
+            Node coordinates for each impedance.
+        impedence_data : numpy.ndarray, shape (N,)
+            Impedance values between nodes ``impedence_coords[:, i]``.
+        mutual_coords : numpy.ndarray, shape (2, M)
+            Indices of impedance pairs with mutual coupling.
+        mutual_data : numpy.ndarray, shape (M,)
+            Mutual values between the indexed impedance pairs. Each sign follows
+            the node order in ``impedence_coords``.
         """
         self.impedence_coords = impedence_coords
         self.impedence_data = impedence_data
@@ -31,12 +31,13 @@ class FrequencySystemBuilder():
         self.voltage_source_coords=np.zeros((2,0),dtype=int)
         self.voltage_source_data=np.array([],dtype=int)
         self.source_count = 0
-        ## initializing second member as empty
+        # Initialize the right-hand side as empty.
         self.rhs = (np.array([]),(np.array([],dtype=int),))
 
         self.analysed=False
 
     def graph_analysis(self):
+        """Analyze connected components and initialize system dimensions."""
         self.all_coords = np.concatenate((self.impedence_coords,self.voltage_source_coords),axis=1)
         all_points = np.unique(self.all_coords)
         if all_points.shape != np.max(self.all_coords)+1:
@@ -47,15 +48,14 @@ class FrequencySystemBuilder():
 
         self.all_impedences = np.concatenate([self.impedence_data,self.voltage_source_data],axis=0)
 
-        # actual number of node in the system
+        # Actual number of nodes in the system.
         self.size = np.max(self.all_coords)+1
-        # number of intensities
+        # Number of currents.
         self.number_intensities = self.all_impedences.shape[0]
-        ## keep the subgraphs
+        # Keep the connected subgraphs.
         self.list_of_subgraphs = [ sub.tolist() for sub in compute_graph_components(self.all_coords)]
         self.number_of_subsystems = len(self.list_of_subgraphs)
-        ## location of ground
-        ## If analysis was already performed we take the previous grounds and try to reassign them to the system
+        # Reassign previous grounds when repeating the analysis.
         if self.analysed:
             grounds_placeholder = self.affected_potentials
             self.affected_potentials = self.affected_potentials[:min(self.number_of_subsystems,len(self.affected_potentials))]
@@ -63,27 +63,31 @@ class FrequencySystemBuilder():
         else:
             self.affected_potentials = [-1]*self.number_of_subsystems
 
-        ## by default remove 1 node equation per subsytem otherwise system is singular
+        # Remove one node equation per subsystem to avoid a singular system.
         self.deleted_equation_current = [subsystem[0] for subsystem in self.list_of_subgraphs]
-        ## shifter for intensities equations
+        # rescaler is an offset for current-equation indices after removing equations.
         rescaler = np.zeros(self.size)
         rescaler[self.deleted_equation_current]=1
         rescaler = -np.cumsum(rescaler)
         self.rescaler =rescaler.astype(int)
-        ## offsets for simplifying building the system
+        # Offsets used while building the system.
         offset_j = self.all_impedences.shape[0]
         offset_i = self.size-len(self.deleted_equation_current)
         self.offset_i = offset_i
         self.offset_j = offset_j
 
-        ## State -> analysed
+        # Mark the builder as analyzed.
         self.analysed=True
 
     def set_ground(self,*args):
-        """Function to affect a ground to subsystems
-        If the system already has a ground provided then a warning is displayed and ground reaffected
+        """Assign ground nodes to subsystems.
+
+        Parameters
+        ----------
+        *args : int
+            Node indices to assign as grounds.
         """
-        ## Running graph analysis if not done
+        # Run graph analysis if needed.
         if not self.analysed:
             self.graph_analysis()
         for index in args:
@@ -95,43 +99,46 @@ class FrequencySystemBuilder():
                     break
 
     def affect_potentials(self):
-        """Function to check whether the grounds were all affected and assign some if some are missing
-        """
-        ## Running graph analysis if not done
+        """Assign default ground nodes to subsystems without explicit grounds."""
+        # Run graph analysis if needed.
         if not self.analysed:
             self.graph_analysis()
         for i in range(len(self.affected_potentials)):
             if -1 == self.affected_potentials[i]:
                 self.affected_potentials[i]= self.list_of_subgraphs[i][0]
-                print(f"Subsytem {i} has not been affected to the ground, we chose {self.list_of_subgraphs[i][0]}")
+                print(f"Subsystem {i} has not been assigned a ground; using {self.list_of_subgraphs[i][0]}")
 
     def build_system(self):
-        """Building sytem assuming that data was given as COO matrices
-        This function builds the complex system in a coo format that can be solved by any complex sparse solver.
+        """Build the complex system in COO format.
 
-        Let N be the number of nodes, M the number of impedences, k be be the number of subsystems, s the number of voltage sources, the size of the system is N+M+s.
-        The system is built with M+s intensities as first unknowns and N potentials as second unknowns
+        Let ``N`` be the number of nodes, ``M`` the number of impedances, ``k``
+        the number of subsystems, and ``s`` the number of voltage sources. The
+        system has size ``N + M + s``. Its unknowns are the ``M + s`` currents,
+        followed by the ``N`` potentials.
+
         The equations are ordered as follows:
+
         - node laws (N-k equations)
-        - kirchoff laws (M equations)
+        - Kirchhoff laws (M equations)
         - ground equations (k equations)
         - voltage sources equations (s equations)
+
+        Returns
+        -------
+        tuple
+            COO data and coordinate arrays for the system matrix.
         """
-        ## Running graph analysis if not done
+        # Run graph analysis if needed.
         if not self.analysed:
             self.graph_analysis()
-        ## affecting grounds if need be
+        # Assign grounds if needed.
         self.affect_potentials()
-        ## Building rhs
+        # Build the right-hand side.
         self.build_second_member()
-        ## Building a sparse COO matrix
 
+        # Starting to build the system matrix.
 
-        ## Building all vectorized values necessary
-
-
-
-        ## node laws
+        # Build node-law entries.
         i_s_vals = np.max(self.all_coords,axis=0)
         j_s_vals = np.min(self.all_coords,axis=0)
         data_nodes = np.concatenate((np.ones(self.number_intensities),-np.ones(self.number_intensities)),axis=0)
@@ -139,7 +146,7 @@ class FrequencySystemBuilder():
         i_s_nodes =np.concatenate((i_s_vals,j_s_vals),axis=0)
 
 
-        # Removing one current equation per subsytem
+        # Remove one current equation per subsystem.
         mask_removed_eq = ~np.isin(i_s_nodes,self.deleted_equation_current)
         data_nodes = data_nodes[mask_removed_eq]
         j_s_nodes = j_s_nodes[mask_removed_eq]
@@ -148,7 +155,7 @@ class FrequencySystemBuilder():
 
 
 
-        ## Kirchoff
+        # Build impedence entries.
         i_s_vals = np.max(self.impedence_coords,axis=0)
         j_s_vals = np.min(self.impedence_coords,axis=0)
         values = self.impedence_data
@@ -158,7 +165,7 @@ class FrequencySystemBuilder():
 
 
 
-        ## adding mutuals to the system
+        # Add mutual couplings to the system.
         sign = np.sign(self.impedence_coords[0]-self.impedence_coords[1])
 
 
@@ -167,23 +174,22 @@ class FrequencySystemBuilder():
         data_additionnal = np.tile(self.mutual_data*sign[self.mutual_coords[0]]*sign[self.mutual_coords[1]],(2,))
 
 
-        ## ground equations (1 per subsystem)
+        # Add one ground equation per subsystem.
         i_s_ground = np.arange(self.offset_i+self.offset_j,self.size+self.offset_j) - self.source_count
         j_s_ground = self.offset_j+np.array(self.affected_potentials)
         data_ground = np.ones(len(self.affected_potentials))
 
-        ## voltage sources equations
+        # Add voltage-source equations.
         i_s_sources = np.tile(np.arange(0,self.voltage_source_data.shape[0]),2)+self.number_intensities+self.size - self.source_count
         j_s_sources = np.concatenate((self.offset_j + self.voltage_source_coords[0],self.offset_j+self.voltage_source_coords[1]),axis=0)
         data_source = np.concatenate((np.ones_like(self.voltage_source_data),-np.ones_like(self.voltage_source_data)))
 
-        ## Building the sparse system
+        # Build the sparse system.
         i_s = np.concatenate((i_s_nodes,i_s_edges,i_s_additionnal,i_s_ground,i_s_sources),axis=0)
         j_s = np.concatenate((j_s_nodes,j_s_edges,j_s_additionnal,j_s_ground,j_s_sources),axis=0)
         data = np.concatenate((data_nodes,data_edges,data_additionnal,data_ground,data_source),axis=0)
 
-        ##informations for gradients
-        ## building reverse S system for gradients
+        # Build reverse system indices for gradients.
         self.S_reverse_impedence = data_nodes.shape[0]+self.impedence_data.shape[0]*2 + np.arange(self.impedence_data.shape[0])
         self.S_reverse_impedence_sign = np.ones_like(self.impedence_data)
         # mutuals are used twice in the system but only contribute once to the gradient
@@ -196,24 +202,25 @@ class FrequencySystemBuilder():
         return self.system
 
     def build_second_member(self,check=True):
-        """General second member builder, need to be called after graph analysis and voltage and current sources tests
+        """Build the right-hand side after graph and source validation.
 
         Parameters
         ----------
         check : bool, optional
-            Whether to check or not that current injections append on the same subsystem, setting to False speeds up, by default True
+            Whether to verify that each current injection connects nodes in the
+            same subsystem. Setting to False will speed up a little bit.
 
         Returns
         -------
         tuple
-            rhs tuple in case it is needed
+            COO data and coordinates for the right-hand side in the form of a tuple (data, (nodes,)).
 
         Raises
         ------
         IndexError
-            raised when current injection does not belong to the same subsystem
+            If a current injection connects different subsystems.
         """
-        ## Testing current
+        # Validate current sources.
         if check:
             for i in range(self.current_source_coords.shape[1]):
                 input_node=self.current_source_coords[0,i]
@@ -229,7 +236,7 @@ class FrequencySystemBuilder():
                         raise IndexError(f"Nodes {input_node} and {output_node} do not belong to the same subsystem, can't create a current source between these two points")
 
 
-        ## Building current injection
+        # Build current injections.
         in_current_nodes = self.current_source_coords[0]
         in_current_data = - self.current_source_data
         out_current_nodes = self.current_source_coords[1]
@@ -243,7 +250,7 @@ class FrequencySystemBuilder():
         current_data = current_data[mask_removed_eq]
         current_nodes = current_nodes + self.rescaler[current_nodes]
 
-        ## Building voltage rhs
+        # Build voltage-source terms.
         voltage_nodes = np.arange(0,self.voltage_source_data.shape[0])+self.number_intensities+self.size - self.source_count
         voltage_data = self.voltage_source_data
 
@@ -251,18 +258,19 @@ class FrequencySystemBuilder():
         return self.rhs
 
     def get_system(self,sparse_rhs=True):
-        """Function to get the system
-        Parameters:
-        -------
-        sparse_rhs: bool, optionnal
-            Whether to return the second member as a sparse.coo_array (sparse rhs can be used efficiently by MUMPS)
+        """Return the assembled system matrix and right-hand side.
+
+        Parameters
+        ----------
+        sparse_rhs : bool, optional
+            Whether to return the right-hand side as a sparse COO array.
 
         Returns
         -------
-        sys: scipy.coo_matrix
-            Linear system to solve
-        rhs: np.ndarray
-            Second member of the system
+        sys : scipy.sparse.coo_matrix, shape (n, n)
+            Linear system to solve.
+        rhs : scipy.sparse.coo_array or numpy.ndarray, shape (n,)
+            Right-hand side of the system.
         """
         size = self.number_intensities+self.size
         (data_rhs,(nodes,)) = self.rhs
@@ -278,32 +286,31 @@ class FrequencySystemBuilder():
         return sys,rhs
 
     def add_current_source(self,intensity,input_node,output_node):
-        """Function to build a second member for the scenario of current injection in the sparse system
+        """Add a current source to the system.
 
         Parameters
         ----------
         intensity : float
-            intensity to inject
+            Current to inject.
         input_node : int
-            which node to take for injection
+            Injection node.
         output_node : int
-            which node for current retrieval
+            Current retrieval node.
         """
         self.current_source_coords = np.append(self.current_source_coords,np.array([[input_node],[output_node]]),axis=1)
         self.current_source_data = np.append(self.current_source_data,np.array([intensity]))
 
     def add_voltage_source(self,voltage,input_node,output_node):
-        """Adding a voltage source to the system. This adds one equation and one degree of freedom in the system (the source intensity)
+        """Add a voltage source and its current degree of freedom.
 
         Parameters
         ----------
         voltage : complex
-            enforced voltage
+            Enforced voltage.
         input_node : int
-            node where the voltage is enforced
+            Node where the voltage is enforced.
         output_node : int
-            node from where the voltage is enforced
-
+            Reference node for the enforced voltage.
         """
         if self.analysed == True:
             warnings.warn("Warning: adding a tension source when analysis is performed may result in system topology change. You may need to rerun graph_analysis if it is the case.")
@@ -312,35 +319,40 @@ class FrequencySystemBuilder():
         self.source_count+=1
 
     def backpropagate_gradients(self, dS=None, drhs=None):
-        """Function to backpropagate the gradient from the system gradient to the different parameters
-           It needs to called after the build_system function to be able to propagate the gradient on the parameters
-           For efficient backpropagation the gradients provided to this function should only be the same data arrays than S and rhs (and not the whole coo_matrix or the whole rhs vector) to avoid unnecessary computations on zero values.
-           The function will return the gradients on the parameters in the same order than they were given in the constructor of the class.
-           The returned gradients are numpy arrays of the same shape than the data arrays of the parameters.
-           For example if impedence_data was given as a parameter then the first returned gradient will be an array of the same shape than impedence_data containing the gradient on each coil value.
-           The user can provide None for the gradient that are not available or not useful to the user, in case of multiple parameters contributing to the same value in the system the function will only return the sum of the gradients on this value.
-        Parameters:
-        dS: Optional[np.array]
-            gradient on the data array of the system matrix
-        drhs: Optional[np.array]
-            gradient on the data array of rhs
+        """Backpropagate system gradients to electrical parameters.
+
+        Call this method after :meth:`build_system`. Gradients correspond to
+        the sparse data arrays, not full dense matrices or vectors. Contributions
+        from repeated parameter values are summed.
+
+        Parameters
+        ----------
+        dS : numpy.ndarray, optional
+            Gradient of the system matrix data array.
+        drhs : numpy.ndarray, optional
+            Gradient of the right-hand-side data array.
+
+        Returns
+        -------
+        GradientsParametersFrequency
+            Gradients with shapes matching their corresponding parameter arrays.
         """
-        ## Initializing gradients on parameters
+        # Initialize parameter gradients.
         grads_impedence = np.zeros_like(self.impedence_data,dtype=complex)
         grads_voltage_sources = np.zeros_like(self.voltage_source_data,dtype=complex)
         grads_mutual = np.zeros_like(self.mutual_data,dtype=complex)
         grads_current_sources = np.zeros_like(self.current_source_data,dtype=complex)
 
         if dS is not None:
-            ## resistance contribution to S1
+            # Impedance contribution to the system.
             grads_impedence += dS[self.S_reverse_impedence]*self.S_reverse_impedence_sign
-            ## resistive mutuals contribution to S1
+            # Mutual contributions to the system.
             grads_mutual += dS[self.S_reverse_mutual_1]*self.S_reverse_mutual_sign_1
             grads_mutual += dS[self.S_reverse_mutual_2]*self.S_reverse_mutual_sign_2
 
 
         if drhs is not None:
-            ## Need to make a specific treatment for current source since some equations are removed from the system
+            # Handle current sources separately because some equations are removed.
             in_current_nodes = self.current_source_coords[0]
             out_current_nodes = self.current_source_coords[1]
             in_current_sign = -np.ones_like(in_current_nodes)
@@ -362,7 +374,18 @@ class FrequencySystemBuilder():
 
 
     def build_intensity_and_voltage_from_vector(self,sol):
-        """Function to build a more readable solution from the raw solution of the system"""
+        """Convert a raw solution vector to named solution components.
+
+        Parameters
+        ----------
+        sol : numpy.ndarray, shape (..., n)
+            Raw system solution.
+
+        Returns
+        -------
+        SolutionFrequency
+            Impedance currents, node potentials, and voltage-source currents.
+        """
         sign = np.sign(self.all_coords[1]-self.all_coords[0])
         if self.source_count!=0:
             return SolutionFrequency(sol[...,:self.number_intensities-self.source_count]*sign[:self.number_intensities-self.source_count],
@@ -376,17 +399,17 @@ class FrequencySystemBuilder():
                     np.array([],dtype=float)
                     )
     def build_vector_from_intensity_and_voltage(self,solution: SolutionFrequency):
-        """Function to build a solution vector from a SolutionFrequency named tuple, useful for building target vectors for gradients backpropagation
+        """Build a raw solution vector from named solution components.
 
         Parameters
         ----------
         solution : SolutionFrequency
-            object containing all the components of the solution
+            Components of the solution.
 
         Returns
         -------
-        sol: np.array of shape (*, self.number_intensities+self.size)
-            array containing as many solutions as wanted
+        numpy.ndarray, shape (..., self.number_intensities + self.size)
+            One or more raw solution vectors.
         """
         sign = np.sign(self.all_coords[1]-self.all_coords[0])
         if self.source_count!=0:

@@ -97,7 +97,7 @@ class TestNetlistParser(unittest.TestCase):
 
 
     def test_parse_si_value_invalid(self):
-        """Test if parsing of invalid SI values raise errors."""
+        """Test whether parsing invalid SI values raises errors."""
         # Test invalid SI values
         parser = NetlistParser(self.test_file_path)
         list_wrong_val = ['invalid', '10.5X', '1.5e', '1.5e+', '1.5e-']

@@ -4,10 +4,12 @@ from .TemporalSystemBuilder import TemporalSystemBuilder
 
 class TemporalNetlistDumper(object):
     def __init__(self, temporal_system_builder: TemporalSystemBuilder):
-        """Constructor of TemporalNetlistDumper. Allows dumping TemporalSystemBuilder as subckt compatible with spice-like tools
+        """Create a dumper for a temporal system builder.
 
-        Args:
-            temporal_system_builder (TemporalSystemBuilder): TemporalSystemBuilder from elecsolv to be exported
+        Parameters
+        ----------
+        temporal_system_builder : TemporalSystemBuilder
+            Temporal system builder to export as a SPICE-compatible subcircuit.
         """
         if not isinstance(temporal_system_builder, TemporalSystemBuilder):
             raise TypeError("temporal_system_builder must be an instance of "+ TemporalSystemBuilder.__name__)
@@ -15,20 +17,31 @@ class TemporalNetlistDumper(object):
         self.ports_map ={}
 
     def add_port(self, port_number: int, port_name: str):
-        """Add port to subckt definition, will be exposed and accessible in spice tools
+        """Add an exposed port to the subcircuit definition.
 
-        Args:
-            port_number (int): port number used in temporal_system_builder to be used as port
-            port_name (str): port name to be used for export
+        Parameters
+        ----------
+        port_number : int
+            Node number in the temporal system builder to expose as a port.
+        port_name : str
+            Port name to use in the exported subcircuit.
         """
         self.ports_map.update({port_number:port_name})
 
     def generate_subcircuit_file(self, subcircuit_name : str = "esolvsub", file_name : str ="esolvsub.net"):
-        """Dump a text file with the the definition of the subckt with provided name and file name
+        """Write the system as a SPICE-compatible subcircuit definition.
 
-        Args:
-            subcircuit_name (str, optional): name of the subcircuit to be generated. Defaults to "esolvsub".
-            file_name (str, optional): file name to dump the generate the netlist to. Defaults to "esolvsub.net".
+        Parameters
+        ----------
+        subcircuit_name : str, optional
+            Name of the generated subcircuit.
+        file_name : str, optional
+            Path of the generated netlist file.
+
+        Raises
+        ------
+        ValueError
+            If no ports have been defined.
         """
         if not bool(self.ports_map):  # check if dict is empty
             raise ValueError("ports_map is empty, cannot generate subckt")
@@ -53,12 +66,12 @@ class TemporalNetlistDumper(object):
                 if node1 in self.ports_map:
                     node1=self.ports_map[node1]
                 else:
-                    node1=str(node1+1) # +1 because 0 node is gnd in spice !
+                    node1=str(node1+1) # Add 1 because node 0 is ground in SPICE.
 
                 if node2 in self.ports_map:
                     node2=self.ports_map[node2]
                 else:
-                    node2=str(node2+1) # +1 because 0 node is gnd in spice !
+                    node2=str(node2+1) # Add 1 because node 0 is ground in SPICE.
                 curr_list_out.append(current_class(str(index), node1, node2,  value))
 
         for index_mutual, mutual in enumerate(self.system_builder.inductive_mutual_data):

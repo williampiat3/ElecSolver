@@ -10,7 +10,7 @@ This repository is **not** a general-purpose electrical system solver. Instead, 
 - The graph-based description of an electric network
 - The corresponding sparse linear system to solve
 
-In a very simple way, `ElecSolver` takes as an input the Resistances $R$, Capacitances $C$, Inductances $L$, Mutuals $M$, Current sources $I$  and Voltage sources $V$ along with the connectivity graph $G$ of the system and outputs the linear system: matrix $S$ and vector $b$ to solve in order to get the solution of the electric problem.
+In a very simple way, `ElecSolver` takes as input the resistances $R$, capacitances $C$, inductances $L$, mutuals $M$, current sources $I$, and voltage sources $V$, along with the connectivity graph $G$ of the system, and outputs the linear system: matrix $S$ and vector $b$ to solve in order to get the solution of the electric problem.
 
 $$f_{\text{ElecSolver}}(R,C,L,M,I,V,G) = (S,b)$$
 
@@ -24,10 +24,10 @@ The main goal of `ElecSolver` is to provide a friendly Python interface for simu
     `ElecSolver` has been designed with the following specifications in mind:
 
     - The time needed for building the linear system must be negligible compared to the time needed for solving it.
-    - Handle natively inductive mutuals and resistive mutuals.
+    - Natively handle inductive mutuals and resistive mutuals.
     - Handle as many coupled electric systems as needed.
     - Deal with lonely nodes and lonely edges in the electric graph when the problem is still well posed.
-    - Have minimal dependencies to simplify installation and usage (only scipy and numpy)
+    - Have minimal dependencies to simplify installation and usage (only SciPy and NumPy).
     - Allow backpropagation of gradients through the system for optimization purposes.
 
 !!! warning
@@ -38,11 +38,11 @@ The main goal of `ElecSolver` is to provide a friendly Python interface for simu
 
 !!! tip
 
-    Although not having any solver dependencies, any user will want to tackle the linear system it outputs. Therefore we recommend installing and using `python-mumps` along when it is available on your platform.
+    Although it has no solver dependencies, users will need to solve the linear system it outputs. Therefore, we recommend installing and using `python-mumps` when it is available on your platform.
 
 ### Using `spack` (recommended)
 
-The recommended way of installing `ElecSolver` is `spack` since `spack` provides a MUMPS solver (and its python bindings `python-mumps`) optimized for your platform.
+The recommended way to install `ElecSolver` is with `spack`, since `spack` provides a MUMPS solver (and its Python bindings, `python-mumps`) optimized for your platform.
 
 ```bash
 spack install py-elecsolver py-python-mumps
@@ -50,7 +50,7 @@ spack install py-elecsolver py-python-mumps
 
 ### Using `conda`
 
-If you do not have access to a compiler or want a faster installation with MUMPS solver we also provide a conda package since `python-mumps` is available in conda. This installation may come at the cost of performance. You can install it with:
+If you do not have access to a compiler or want a faster installation with a MUMPS solver, we also provide a conda package, since `python-mumps` is available in conda. This installation may come at the cost of performance. You can install it with:
 
 ```bash
 conda install elecsolver python-mumps
@@ -58,7 +58,7 @@ conda install elecsolver python-mumps
 
 ### Using `pip` (if you must)
 
-For convenience, `ElecSolver` is distributed on PyPI and can be installed with `pip`. In this case we recommend using scipy's sparse solvers since MUMPS is not available via PyPI. No need to make any special installation for this, since `scipy` is a dependency of `ElecSolver`.
+For convenience, `ElecSolver` is distributed on PyPI and can be installed with `pip`. In this case, we recommend using SciPy's sparse solvers since MUMPS is not available via PyPI. No special installation is needed, since `scipy` is a dependency of `ElecSolver`.
 
 ```bash
 pip install ElecSolver

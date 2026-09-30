@@ -31,16 +31,16 @@ class Netlist(object):
         Constructor a Netlist instance with a name and a value.
         :param value:  representing the value of the netlist.
         :param name (str): representing the name of the netlist
-        """ 
+        """
         self.value = value
-        self.name = name   
-    
+        self.name = name
+
     def get_type_char(self):
         """Abstract method to be implemented by subclasses.
            Returns a character representing the type of the netlist.
         """
         raise NotImplementedError()
-    
+
     def _char_netlist(self):
         """Abstract method to be implemented by subclasses.
            Returns a string representation of the netlist in the spice format.
@@ -57,21 +57,21 @@ class Netlist(object):
 class DipoleNetlist(Netlist):
     """
      Represents a dipole netlist for electric circuit simulation in spice format.
-     
+
      This class extends the base class Netlist and adds specific attributes for
      dipole netlists. It includes a method to generate a string representation
      of the dipole netlist in the spice format.
-     
+
      Parameters:
      - name (str): Name of the dipole netlist.
      - n1: Node 1 of the dipole netlist.
      - n2: Node 2 of the dipole netlist.
      - value: Value associated with the dipole netlist.
-     
+
      Methods:
      - _char_netlist(): Overrides the method in the base class. Returns a string
        representation of the dipole netlist in the spice format.
-     
+
      Note: The dipole netlist inherits from the base class Netlist.
     """
 
@@ -95,25 +95,25 @@ class DipoleNetlist(Netlist):
         net_char = self.full_name() + " " + str(self.n1) + " " + str(self.n2) + " " + str(self.value)
         return net_char
 
-    
+
 class ResistorNetlist(DipoleNetlist):
     """
      Represents a resistor netlist for electric circuit simulation in spice format.
-     
+
      This class extends the DipoleNetlist class and specializes in representing
      resistors. It overrides the get_type_char method to return the resistor type
      character ('R').
-     
+
      Parameters:
      - name (str): Name of the resistor netlist.
      - n1: Node 1 of the resistor netlist.
      - n2: Node 2 of the resistor netlist.
      - value: Value associated with the resistor netlist.
-     
+
      Methods:
      - get_type_char(): Overrides the method in the base class. Returns the
        resistor type character ('R').
-     
+
      Note: The resistor netlist inherits from the DipoleNetlist class.
     """
 
@@ -443,7 +443,7 @@ class VoltageCurrentControlled(IcontrolNetlist):
         """
         return 'H'
 
-    
+
 class CurrentCurrentControlled(IcontrolNetlist):
     """
     Represents a current-controlled current source netlist for electric circuit simulation in spice format.
@@ -456,7 +456,7 @@ class CurrentCurrentControlled(IcontrolNetlist):
     - name (str): Name of the current-controlled current source netlist.
     - n1: Node 1 of the current-controlled current source netlist.
     - n2: Node 2 of the current-controlled current source netlist.
-    - Vcontrol: I(Vcontrol) control the output current from the source 
+    - Vcontrol: I(Vcontrol) control the output current from the source
     - gain: Gain associated with the current-controlled current source.
 
     Methods:
@@ -485,7 +485,7 @@ class CurrentCurrentControlled(IcontrolNetlist):
         """
         return 'F'
 
-    
+
 class MutualInductance(DipoleNetlist):
     """
     Represents a mutual inductance netlist for electric circuit simulation in spice format.
@@ -547,7 +547,7 @@ class DummyNetlist(object):
         :param printed_char (str): Character to be printed as the dummy netlist.
         """
         self.printed_char = printed_char
-    
+
     def _char_netlist(self):
         """
         Returns the character to be printed as the dummy netlist.
