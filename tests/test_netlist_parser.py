@@ -1,4 +1,5 @@
 from ElecSolver import NetlistParser
+from pathlib import Path
 import unittest
 
 class TestNetlistParser(unittest.TestCase):
@@ -108,6 +109,79 @@ class TestNetlistParser(unittest.TestCase):
                 elif key.startswith(('K', 'k')):
                     self.assertIn(key, parser.couplings)
                     self.assertEqual(parser.couplings[key], value)
+
+    def test_direct_parse_netlist(self):
+        """Test parsing of the netlist str."""
+        parser = NetlistParser(
+            """R1 n1 n2 10k
+            r2 0 n2 1k
+            L1 n32 n4 100u
+            c1 n5 n6 1n
+            C2 28 q6 1n
+            K1 L1 l2 0.5
+            k12 L122 L21 -0.2
+            l2 n23 n42 10u
+            """
+              )
+        parser._parse_netlist()
+        dict_test = {'R1': {'n1': 'n1', 'n2': 'n2', 'value': '10k'},
+                      'r2': {'n1': '0', 'n2': 'n2', 'value': '1k'},
+                      'L1': {'n1': 'n32', 'n2': 'n4', 'value': '100u'},
+                      'c1': {'n1': 'n5', 'n2': 'n6', 'value': '1n'},
+                      'C2': {'n1': '28', 'n2': 'q6', 'value': '1n'},
+                      'K1': {'L1': 'L1', 'L2': 'l2', 'k': '0.5'},
+                      'k12': {'L1': 'L122', 'L2': 'L21', 'k': '-0.2'},
+                      'l2': {'n1': 'n23', 'n2': 'n42', 'value': '10u'}}
+
+        for key, value in dict_test.items():
+            with self.subTest(key=key):
+                if key.startswith(('R', 'r')):
+                    self.assertIn(key, parser.resistors)
+                    self.assertEqual(parser.resistors[key], value)
+                elif key.startswith(('L', 'l')):
+                    self.assertIn(key, parser.inductors)
+                    self.assertEqual(parser.inductors[key], value)
+                elif key.startswith(('C', 'c')):
+                    self.assertIn(key, parser.capacitors)
+                    self.assertEqual(parser.capacitors[key], value)
+                elif key.startswith(('K', 'k')):
+                    self.assertIn(key, parser.couplings)
+                    self.assertEqual(parser.couplings[key], value)
+
+    def test_direct_netlist_mapping(self):
+        """Test full mapping from direct netlist text."""
+        parser = NetlistParser(
+            """
+            .param BASE = 10
+            .param RESISTANCE = {BASE * 5}
+            V1 input 0 PULSE(0 1 0 1n 1n 1u 2u)
+            R1 input output {RESISTANCE}
+            L1 output 0 1m
+            C1 output 0 2u
+            B1 output 0 I=V(R1)/50
+            """
+        )
+
+        parser.map_netlist()
+
+        self.assertEqual(parser.file_path, None)
+        self.assertEqual(parser.params, {'BASE': 10.0, 'RESISTANCE': 50.0})
+        self.assertEqual(parser.dipole_map['R1']['value'], 50.0)
+        self.assertEqual(parser.dipole_map['L1']['value'], 1e-3)
+        self.assertEqual(parser.dipole_map['C1']['value'], 2e-6)
+        self.assertEqual(parser.voltage, {'V1': {'n1': 'input', 'n2': '0'}})
+        self.assertEqual(parser.current, {'B1': {'n1': 'output', 'n2': '0'}})
+        self.assertIn('V1', parser.dipole_map)
+        self.assertIn('B1', parser.dipole_map)
+
+    def test_path_object_input(self):
+        """Test parsing from a pathlib path."""
+        parser = NetlistParser(Path(self.test_file_path))
+
+        parser.map_netlist()
+
+        self.assertEqual(parser.file_path, Path(self.test_file_path))
+        self.assertEqual(parser.dipole_map['R1']['value'], 10e3)
 
 
     def test_parse_si_value(self):

@@ -3,6 +3,7 @@ import operator
 import re
 import os
 from numpy import sqrt, array, concatenate, arange
+from pathlib import Path
 from .TemporalSystemBuilder import TemporalSystemBuilder
 
 class NetlistParser():
@@ -14,8 +15,10 @@ class NetlistParser():
 
     Attributes
     ----------
-    file_path : str
-        Path to the source netlist.
+    file_path : pathlib.Path or None
+        Path to the source netlist, or ``None`` when initialized from direct text.
+    netlist : str
+        Netlist text read from a file or supplied directly.
     node_map : dict[str, int]
         Mapping from netlist node names to integer node indices.
     dipole_map : dict[str, dict]
@@ -47,15 +50,17 @@ class NetlistParser():
         Next available node index after mapping.
     """
     # Regex patterns
-    RESISTOR_PATTERN  = r'^([Rr][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
-    INDUCTOR_PATTERN  = r'^([Ll][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
-    CAPACITOR_PATTERN = r'^([Cc][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
-    COUPLING_PATTERN  = r'^([Kk][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
-    REALCOUPLING_PATTERN  = r'^([Ww][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
-    CURRENT_PATTERN = r'^([Ii][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
-    VOLTAGE_PATTERN = r'^([Vv][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
-    BEHAVIORAL_PATTERN = r'^([Bb][\w]*)\s+(\S+)\s+(\S+)\s+([IiVv])\s*='
-    PARAM_PATTERN = r'^\.param\s+([\w]+)\s*=\s*(.+)$'
+    RESISTOR_PATTERN  = r'^[ \t]*([Rr][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    INDUCTOR_PATTERN  = r'^[ \t]*([Ll][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    CAPACITOR_PATTERN = r'^[ \t]*([Cc][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    COUPLING_PATTERN  = r'^[ \t]*([Kk][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    REALCOUPLING_PATTERN = r'^[ \t]*([Ww][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    CURRENT_PATTERN = r'^[ \t]*([Ii][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
+    VOLTAGE_PATTERN = r'^[ \t]*([Vv][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
+    BEHAVIORAL_PATTERN = (
+        r'^[ \t]*([Bb][\w]*)\s+(\S+)\s+(\S+)\s+([IiVv])\s*='
+    )
+    PARAM_PATTERN = r'^[ \t]*\.param\s+([\w]+)\s*=\s*(.+)$'
     SI_VALUE_PATTERN = r'\s*([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)([a-zA-Zµ]*)\s*'
     SI_EXPRESSION_VALUE_PATTERN = (
         r'(?<![\w.])(?:\d+(?:\.\d*)?|\.\d+)'
@@ -74,6 +79,7 @@ class NetlistParser():
         ast.UAdd: operator.pos,
         ast.USub: operator.neg,
     }
+    SUPPORTED_FILE_EXTENSIONS = ('.net', '.cir', '.sp')
 
     SI_COEF = {
         'f': 1e-15,
@@ -94,27 +100,47 @@ class NetlistParser():
         'T': 1e12
     }
 
-    def __init__(self, file_path):
-        """Initialize a parser for a netlist file.
+    def __init__(self, netlist):
+        """Initialize a parser from a file path or direct netlist text.
 
         Parameters
         ----------
-        file_path : str
-            Path to a ``.net``, ``.cir``, or ``.sp`` file.
+        netlist : str or os.PathLike
+            Existing netlist file path or direct netlist text. A string ending in a
+            supported netlist extension is treated as a path even when it does not
+            exist.
 
         Raises
         ------
         FileNotFoundError
-            If ``file_path`` does not exist.
+            If a path input, or a string ending in a supported extension, does not
+            exist.
         ValueError
-            If the file extension is not supported.
+            If an existing input file has an unsupported extension.
+        TypeError
+            If ``netlist`` is neither a string nor a path-like object.
         """
-        if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        if not file_path.endswith(('.net', '.cir', '.sp')):
-            raise ValueError(f"Invalid file type: {file_path}. Expected a .net file.")
+        if isinstance(netlist, os.PathLike):
+            self.file_path = Path(netlist)
+            self.netlist = self._read_netlist_file(self.file_path)
+        elif isinstance(netlist, str):
+            self.file_path = None
+            if '\n' not in netlist and '\r' not in netlist:
+                candidate = Path(netlist)
+                try:
+                    is_file = candidate.is_file()
+                except OSError:
+                    is_file = False
+                if is_file or candidate.suffix.lower() in self.SUPPORTED_FILE_EXTENSIONS:
+                    self.file_path = candidate
+                    self.netlist = self._read_netlist_file(candidate)
+                else:
+                    self.netlist = netlist
+            else:
+                self.netlist = netlist
+        else:
+            raise TypeError("netlist must be a string or path-like object")
 
-        self.file_path = file_path
         self.node_map = {}
         self.dipole_map = {}
         self.coupling_map = {}
@@ -124,6 +150,35 @@ class NetlistParser():
         self.voltage = {}
         self.max_index_node = 0
 
+    @classmethod
+    def _read_netlist_file(cls, file_path):
+        """Validate and read a netlist file.
+
+        Parameters
+        ----------
+        file_path : pathlib.Path
+            Path to the netlist file.
+
+        Returns
+        -------
+        str
+            File contents.
+
+        Raises
+        ------
+        FileNotFoundError
+            If ``file_path`` does not exist.
+        ValueError
+            If the file extension is not supported.
+        """
+        if not file_path.is_file():
+            raise FileNotFoundError(f"File not found: {file_path}")
+        if file_path.suffix.lower() not in cls.SUPPORTED_FILE_EXTENSIONS:
+            raise ValueError(
+                f"Invalid file type: {file_path}. "
+                f"Expected one of {cls.SUPPORTED_FILE_EXTENSIONS}."
+            )
+        return file_path.read_text()
 
     def map_netlist(self):
         """Parse the netlist and populate node, dipole, and coupling mappings."""
@@ -144,31 +199,27 @@ class NetlistParser():
         ValueError
             If a parameter value or expression cannot be resolved.
         """
-
-        with open(self.file_path, 'r') as file:
-            data = file.read()
-
         # Use re.MULTILINE to process line by line without looping
         self.resistors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                 for m in re.findall(self.RESISTOR_PATTERN, data, re.MULTILINE)}
+                 for m in re.findall(self.RESISTOR_PATTERN, self.netlist, re.MULTILINE)}
         self.inductors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                 for m in re.findall(self.INDUCTOR_PATTERN, data, re.MULTILINE)}
+                 for m in re.findall(self.INDUCTOR_PATTERN, self.netlist, re.MULTILINE)}
         self.capacitors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                  for m in re.findall(self.CAPACITOR_PATTERN, data, re.MULTILINE)}
+                  for m in re.findall(self.CAPACITOR_PATTERN, self.netlist, re.MULTILINE)}
         self.couplings = {m[0]: {'L1': m[1], 'L2': m[2], 'k': m[3]}
-                 for m in re.findall(self.COUPLING_PATTERN, data, re.MULTILINE)}
+                 for m in re.findall(self.COUPLING_PATTERN, self.netlist, re.MULTILINE)}
         self.real_couplings = {m[0]: {'L1': m[1], 'L2': m[2], 'k': m[3]}
-                 for m in re.findall(self.REALCOUPLING_PATTERN, data, re.MULTILINE)}
+                 for m in re.findall(self.REALCOUPLING_PATTERN, self.netlist, re.MULTILINE)}
         self.current = {m[0]: {'n1': m[1], 'n2': m[2]}
-                for m in re.findall(self.CURRENT_PATTERN, data, re.MULTILINE)}
+                for m in re.findall(self.CURRENT_PATTERN, self.netlist, re.MULTILINE)}
         self.voltage = {m[0]: {'n1': m[1], 'n2': m[2]}
-                for m in re.findall(self.VOLTAGE_PATTERN, data, re.MULTILINE)}
+                for m in re.findall(self.VOLTAGE_PATTERN, self.netlist, re.MULTILINE)}
         for name, n1, n2, source_type in re.findall(
-                self.BEHAVIORAL_PATTERN, data, re.MULTILINE):
+                self.BEHAVIORAL_PATTERN, self.netlist, re.MULTILINE):
             sources = self.current if source_type.lower() == 'i' else self.voltage
             sources[name] = {'n1': n1, 'n2': n2}
 
-        param_definitions = re.findall(self.PARAM_PATTERN, data, re.MULTILINE)
+        param_definitions = re.findall(self.PARAM_PATTERN, self.netlist, re.MULTILINE)
         self._parse_param_values(param_definitions)
 
     def _parse_param_values(self, param_definitions):
