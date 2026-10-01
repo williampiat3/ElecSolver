@@ -1,3 +1,5 @@
+import ast
+import operator
 import re
 import os
 from numpy import sqrt, array, concatenate, arange
@@ -21,6 +23,10 @@ class NetlistParser():
         Dictionary of capacitors with their connections and values.
     couplings : dict
         Dictionary of couplings with their connections and values.
+    current : dict
+        Dictionary of independent and behavioral current sources.
+    voltage : dict
+        Dictionary of independent and behavioral voltage sources.
     """
     # Regex patterns
     RESISTOR_PATTERN  = r'^([Rr][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
@@ -28,7 +34,28 @@ class NetlistParser():
     CAPACITOR_PATTERN = r'^([Cc][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
     COUPLING_PATTERN  = r'^([Kk][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
     REALCOUPLING_PATTERN  = r'^([Ww][\w]*)\s+(\S+)\s+(\S+)\s+(.+)$'
+    CURRENT_PATTERN = r'^([Ii][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
+    VOLTAGE_PATTERN = r'^([Vv][\w]*)\s+(\S+)\s+(\S+)(?:\s+.+)?$'
+    BEHAVIORAL_PATTERN = r'^([Bb][\w]*)\s+(\S+)\s+(\S+)\s+([IiVv])\s*='
     PARAM_PATTERN = r'^\.param\s+([\w]+)\s*=\s*(.+)$'
+    SI_VALUE_PATTERN = r'\s*([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)([a-zA-Zµ]*)\s*'
+    SI_EXPRESSION_VALUE_PATTERN = (
+        r'(?<![\w.])(?:\d+(?:\.\d*)?|\.\d+)'
+        r'(?:[eE][+-]?\d+)?[a-zA-Zµ]+(?![\w])'
+    )
+
+    ARITHMETIC_OPERATORS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
+        ast.Mod: operator.mod,
+    }
+    UNARY_OPERATORS = {
+        ast.UAdd: operator.pos,
+        ast.USub: operator.neg,
+    }
 
     SI_COEF = {
         'f': 1e-15,
@@ -70,6 +97,8 @@ class NetlistParser():
         self.coupling_map = {}
         self.real_coupling_map = {}
         self.params = {}
+        self.current = {}
+        self.voltage = {}
         self.max_index_node = 0
 
 
@@ -104,14 +133,126 @@ class NetlistParser():
                  for m in re.findall(self.COUPLING_PATTERN, data, re.MULTILINE)}
         self.real_couplings = {m[0]: {'L1': m[1], 'L2': m[2], 'k': m[3]}
                  for m in re.findall(self.REALCOUPLING_PATTERN, data, re.MULTILINE)}
-        self.params = {m[0]: m[1]
-                for m in re.findall(self.PARAM_PATTERN, data, re.MULTILINE)}
+        self.current = {m[0]: {'n1': m[1], 'n2': m[2]}
+                for m in re.findall(self.CURRENT_PATTERN, data, re.MULTILINE)}
+        self.voltage = {m[0]: {'n1': m[1], 'n2': m[2]}
+                for m in re.findall(self.VOLTAGE_PATTERN, data, re.MULTILINE)}
+        for name, n1, n2, source_type in re.findall(
+                self.BEHAVIORAL_PATTERN, data, re.MULTILINE):
+            sources = self.current if source_type.lower() == 'i' else self.voltage
+            sources[name] = {'n1': n1, 'n2': n2}
 
+        param_definitions = re.findall(self.PARAM_PATTERN, data, re.MULTILINE)
+        self._parse_param_values(param_definitions)
 
+    def _parse_param_values(self, param_definitions):
+        """
+        Resolve parameter definitions in declaration order and store their values.
+
+        Each parameter expression may only reference parameters that have already been
+        resolved.
+        """
+        self.params = {}
+        for name, expression in param_definitions:
+            try:
+                self.params[name] = self._parse_si_value(expression)
+            except ValueError as error:
+                raise ValueError(
+                    f"Invalid value for parameter '{name}': {error}"
+                ) from error
+
+    def _parse_si_literal(self, value_str):
+        """Parse a numeric literal with an optional supported SI prefix."""
+        try:
+            return float(value_str)
+        except ValueError:
+            pass
+
+        match = re.fullmatch(self.SI_VALUE_PATTERN, value_str)
+        if not match:
+            raise ValueError(f"Invalid SI value format: '{value_str}'")
+
+        number, prefix = match.groups()
+        if prefix in self.SI_COEF:
+            multiplier = self.SI_COEF[prefix]
+        elif prefix.lower() in self.SI_COEF:
+            multiplier = self.SI_COEF[prefix.lower()]
+        else:
+            raise ValueError(f"Unknown SI prefix: '{prefix}'")
+
+        return float(number) * multiplier
+
+    def _evaluate_param_expression(self, expression):
+        """Safely evaluate arithmetic using already resolved parameter values."""
+        expression = expression.strip()
+        if not expression:
+            raise ValueError("Parameter expression cannot be empty")
+
+        def replace_si_value(match):
+            return repr(self._parse_si_literal(match.group(0)))
+
+        normalized_expression = re.sub(
+            self.SI_EXPRESSION_VALUE_PATTERN,
+            replace_si_value,
+            expression,
+        )
+        try:
+            syntax_tree = ast.parse(normalized_expression, mode='eval')
+        except SyntaxError as error:
+            raise ValueError(
+                f"Invalid parameter expression: '{expression}'"
+            ) from error
+
+        def evaluate(node):
+            if isinstance(node, ast.Expression):
+                return evaluate(node.body)
+            if isinstance(node, ast.Constant):
+                if isinstance(node.value, bool) or not isinstance(
+                        node.value, (int, float)):
+                    raise ValueError(
+                        f"Unsupported value in parameter expression: '{expression}'"
+                    )
+                return node.value
+            if isinstance(node, ast.Name):
+                if node.id not in self.params:
+                    raise ValueError(
+                        f"Unknown or forward parameter reference '{node.id}'"
+                    )
+                return self.params[node.id]
+            if isinstance(node, ast.BinOp):
+                operation = self.ARITHMETIC_OPERATORS.get(type(node.op))
+                if operation is None:
+                    raise ValueError(
+                        f"Unsupported operator in parameter expression: '{expression}'"
+                    )
+                return operation(evaluate(node.left), evaluate(node.right))
+            if isinstance(node, ast.UnaryOp):
+                operation = self.UNARY_OPERATORS.get(type(node.op))
+                if operation is None:
+                    raise ValueError(
+                        f"Unsupported operator in parameter expression: '{expression}'"
+                    )
+                return operation(evaluate(node.operand))
+            raise ValueError(
+                f"Unsupported syntax in parameter expression: '{expression}'"
+            )
+
+        try:
+            result = evaluate(syntax_tree)
+        except (ZeroDivisionError, OverflowError) as error:
+            raise ValueError(
+                f"Cannot evaluate parameter expression '{expression}': {error}"
+            ) from error
+
+        if isinstance(result, bool) or not isinstance(result, (int, float)):
+            raise ValueError(
+                f"Parameter expression is not a real number: '{expression}'"
+            )
+        return float(result)
 
     def _parse_si_value(self, value_str):
         """
-        Parse a string representing a value with an SI prefix and convert it to a float.
+        Parse an SI value or parameter expression and convert it to a float.
 
         Parameters
         ----------
@@ -128,29 +269,17 @@ class NetlistParser():
         ValueError
             If the string is not a valid SI value.
         """
+        value_str = value_str.strip()
+        if value_str.startswith("{") or value_str.endswith("}"):
+            if not (value_str.startswith("{") and value_str.endswith("}")):
+                raise ValueError(f"Unmatched expression braces: '{value_str}'")
+            return self._evaluate_param_expression(value_str[1:-1])
+
         try:
-            return float(value_str)
+            return self._parse_si_literal(value_str)
         except ValueError:
             pass
-        if value_str.startswith("{") and value_str.endswith("}"):
-            return self._parse_si_value(self.params[value_str[1:-1]])
-
-        match = re.fullmatch(r'\s*([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)([a-zA-Zµ]*)\s*', value_str)
-        if not match:
-            raise ValueError(f"Invalid SI value format: '{value_str}'")
-
-        number, prefix = match.groups()
-
-        # First try exact match (e.g. 'M', 'Meg')
-        if prefix in self.SI_COEF:
-            multiplier = self.SI_COEF[prefix]
-        # Then try lowercase for variants like 'meg'
-        elif prefix.lower() in self.SI_COEF:
-            multiplier = self.SI_COEF[prefix.lower()]
-        else:
-            raise ValueError(f"Unknown SI prefix: '{prefix}'")
-
-        return float(number) * multiplier
+        return self._evaluate_param_expression(value_str)
 
     def _map_nodes(self):
         """
@@ -160,7 +289,9 @@ class NetlistParser():
         # Create a mapping of node names to unique integers
         self.node_map = {'0': 0}  # Ground node
         self.dipole_map = {}
-        dipole_list = [self.resistors, self.inductors, self.capacitors]
+        passive_list = [self.resistors, self.inductors, self.capacitors]
+        source_list = [self.current, self.voltage]
+        dipole_list = passive_list + source_list
         index_node=1
         for component in dipole_list:
             for dipole in component:
@@ -174,11 +305,15 @@ class NetlistParser():
                     index_node += 1
         self.max_index_node = index_node
         # Create a mapping of dipole names to node pairs
-        for component in dipole_list:
+        for component in passive_list:
             for dipole in component:
                 self.dipole_map[dipole] = {"nodes":[self.node_map[component[dipole]['n1']],
                                           self.node_map[component[dipole]['n2']]],
                                           "value":self._parse_si_value(component[dipole]['value'])}
+        for component in source_list:
+            for dipole in component:
+                self.dipole_map[dipole] = {"nodes":[self.node_map[component[dipole]['n1']],
+                                          self.node_map[component[dipole]['n2']]]}
 
     def _map_couplings(self):
         """
