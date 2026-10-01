@@ -7,6 +7,8 @@ class TestNetlistParser(unittest.TestCase):
         self.test_file_path = 'test.net'
         self.wrong_file_type_path = 'test.txt'
         self.param_netlist = "param.cir"
+        self.validation_netlist = "validation.cir"
+        self.source_netlist = "sources.cir"
         self.precision_parse=12
         with open(self.test_file_path, 'w') as f:
             f.write("R1 n1 n2 10k\n")
@@ -33,6 +35,28 @@ class TestNetlistParser(unittest.TestCase):
             f.write(".param Capa=1n\n")
             f.write(".param Rt = 1e3")
 
+        with open(self.validation_netlist, 'w') as f:
+            f.write(".param FREQ = 9k\n")
+            f.write(".param DUTY = 0.5\n")
+            f.write(".param V_LOW = 0\n")
+            f.write(".param V_HIGH = 1\n")
+            f.write(".param T_PER = {1/FREQ}\n")
+            f.write(".param T_ON = {T_PER * DUTY}\n")
+            f.write(".param T_RISE = 10n\n")
+            f.write(".param T_FALL = 10n\n")
+            f.write("\n")
+            f.write("V1 in 0 PULSE({V_LOW} {V_HIGH} 0 {T_RISE} {T_FALL} {T_ON} {T_PER})\n")
+            f.write("Lfilter in n1 0.5e-3\n")
+            f.write("Cfilter n1 0 50e-6\n")
+            f.write("Rload n1 0 50\n")
+            f.write("Bload n1 0 I=V(Rload)/50\n")
+
+        with open(self.source_netlist, 'w') as f:
+            f.write("I1 input 0 DC 1\n")
+            f.write("V1 input output 5\n")
+            f.write("BI1 output 0 I = V(V1)\n")
+            f.write("BV1 sense 0 v=V(output)\n")
+
     def tearDown(self):
         # Remove the test file after tests
         import os
@@ -42,6 +66,10 @@ class TestNetlistParser(unittest.TestCase):
             os.remove(self.wrong_file_type_path)
         if os.path.isfile(self.param_netlist):
             os.remove(self.param_netlist)
+        if os.path.isfile(self.validation_netlist):
+            os.remove(self.validation_netlist)
+        if os.path.isfile(self.source_netlist):
+            os.remove(self.source_netlist)
 
     def test_init_invalid_file(self):
         """Test initialization with an invalid file path."""
@@ -133,13 +161,92 @@ class TestNetlistParser(unittest.TestCase):
     def test_parse_param_values(self):
         parser = NetlistParser(self.param_netlist)
         parser._parse_netlist()
-        dict_test = { 'Capa':'1n',
-                      'Rt': '1e3'}
+        dict_test = {'Capa': 1e-9,
+                     'Rt': 1e3}
         for key, value in dict_test.items():
             with self.subTest(key=key):
                 self.assertIn(key, parser.params)
                 self.assertEqual(parser.params[key], value)
-    
+
+    def test_composed_param_values_and_sources(self):
+        parser = NetlistParser(self.validation_netlist)
+        parser.map_netlist()
+
+        expected_params = {
+            'FREQ': 9e3,
+            'DUTY': 0.5,
+            'V_LOW': 0.0,
+            'V_HIGH': 1.0,
+            'T_PER': 1 / 9e3,
+            'T_ON': 0.5 / 9e3,
+            'T_RISE': 10e-9,
+            'T_FALL': 10e-9,
+        }
+        for name, value in expected_params.items():
+            with self.subTest(name=name):
+                self.assertAlmostEqual(
+                    parser.params[name], value, places=self.precision_parse)
+
+        self.assertEqual(parser.dipole_map['Lfilter']['value'], 0.5e-3)
+        self.assertEqual(parser.dipole_map['Cfilter']['value'], 50e-6)
+        self.assertEqual(parser.dipole_map['Rload']['value'], 50.0)
+        self.assertEqual(parser.voltage, {'V1': {'n1': 'in', 'n2': '0'}})
+        self.assertEqual(parser.current, {'Bload': {'n1': 'n1', 'n2': '0'}})
+        self.assertEqual(parser.dipole_map['V1'], {'nodes': [2, 0]})
+        self.assertEqual(parser.dipole_map['Bload'], {'nodes': [1, 0]})
+
+    def test_independent_and_behavioral_sources_share_attributes(self):
+        parser = NetlistParser(self.source_netlist)
+        parser.map_netlist()
+
+        self.assertEqual(
+            parser.current,
+            {
+                'I1': {'n1': 'input', 'n2': '0'},
+                'BI1': {'n1': 'output', 'n2': '0'},
+            },
+        )
+        self.assertEqual(
+            parser.voltage,
+            {
+                'V1': {'n1': 'input', 'n2': 'output'},
+                'BV1': {'n1': 'sense', 'n2': '0'},
+            },
+        )
+        for source in ('I1', 'BI1', 'V1', 'BV1'):
+            with self.subTest(source=source):
+                self.assertIn(source, parser.dipole_map)
+                self.assertNotIn('value', parser.dipole_map[source])
+
+    def test_param_expression_rejects_forward_reference(self):
+        with open(self.test_file_path, 'w') as f:
+            f.write(".param FIRST = {SECOND * 2}\n")
+            f.write(".param SECOND = 10\n")
+
+        parser = NetlistParser(self.test_file_path)
+        with self.assertRaisesRegex(
+                ValueError, "Unknown or forward parameter reference 'SECOND'"):
+            parser._parse_netlist()
+
+    def test_composed_param_values_map_to_passive_components(self):
+        with open(self.test_file_path, 'w') as f:
+            f.write(".param BASE = 10\n")
+            f.write(".param SCALE = 2\n")
+            f.write("Rexpr n1 0 {BASE * SCALE}\n")
+            f.write("Lexpr n1 0 {BASE / SCALE}\n")
+            f.write("Cexpr n1 0 {(BASE + SCALE) * 1n}\n")
+
+        parser = NetlistParser(self.test_file_path)
+        parser.map_netlist()
+
+        self.assertEqual(parser.dipole_map['Rexpr']['value'], 20.0)
+        self.assertEqual(parser.dipole_map['Lexpr']['value'], 5.0)
+        self.assertAlmostEqual(
+            parser.dipole_map['Cexpr']['value'],
+            12e-9,
+            places=self.precision_parse,
+        )
+
     def test_param_affectation(self):
         parser = NetlistParser(self.param_netlist)
         parser.map_netlist()
@@ -159,5 +266,3 @@ class TestNetlistParser(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
