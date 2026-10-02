@@ -2,7 +2,8 @@ import ast
 import operator
 import re
 import os
-from numpy import sqrt, array, concatenate, arange
+from functools import lru_cache
+from numpy import sqrt, array, asarray, concatenate, arange
 from pathlib import Path
 from .TemporalSystemBuilder import TemporalSystemBuilder
 
@@ -80,6 +81,23 @@ class NetlistParser():
         ast.USub: operator.neg,
     }
     SUPPORTED_FILE_EXTENSIONS = ('.net', '.cir', '.sp')
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def _compiled(pattern):
+        """Return a compiled multiline regex, cached across parser instances.
+
+        Parameters
+        ----------
+        pattern : str
+            Regular expression source.
+
+        Returns
+        -------
+        re.Pattern
+            Pattern compiled with :data:`re.MULTILINE`.
+        """
+        return re.compile(pattern, re.MULTILINE)
 
     SI_COEF = {
         'f': 1e-15,
@@ -200,26 +218,27 @@ class NetlistParser():
             If a parameter value or expression cannot be resolved.
         """
         # Use re.MULTILINE to process line by line without looping
+        findall = self._compiled
         self.resistors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                 for m in re.findall(self.RESISTOR_PATTERN, self.netlist, re.MULTILINE)}
+                 for m in findall(self.RESISTOR_PATTERN).findall(self.netlist)}
         self.inductors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                 for m in re.findall(self.INDUCTOR_PATTERN, self.netlist, re.MULTILINE)}
+                 for m in findall(self.INDUCTOR_PATTERN).findall(self.netlist)}
         self.capacitors = {m[0]: {'n1': m[1], 'n2': m[2], 'value': m[3]}
-                  for m in re.findall(self.CAPACITOR_PATTERN, self.netlist, re.MULTILINE)}
+                  for m in findall(self.CAPACITOR_PATTERN).findall(self.netlist)}
         self.couplings = {m[0]: {'L1': m[1], 'L2': m[2], 'k': m[3]}
-                 for m in re.findall(self.COUPLING_PATTERN, self.netlist, re.MULTILINE)}
+                 for m in findall(self.COUPLING_PATTERN).findall(self.netlist)}
         self.real_couplings = {m[0]: {'L1': m[1], 'L2': m[2], 'k': m[3]}
-                 for m in re.findall(self.REALCOUPLING_PATTERN, self.netlist, re.MULTILINE)}
+                 for m in findall(self.REALCOUPLING_PATTERN).findall(self.netlist)}
         self.current = {m[0]: {'n1': m[1], 'n2': m[2]}
-                for m in re.findall(self.CURRENT_PATTERN, self.netlist, re.MULTILINE)}
+                for m in findall(self.CURRENT_PATTERN).findall(self.netlist)}
         self.voltage = {m[0]: {'n1': m[1], 'n2': m[2]}
-                for m in re.findall(self.VOLTAGE_PATTERN, self.netlist, re.MULTILINE)}
-        for name, n1, n2, source_type in re.findall(
-                self.BEHAVIORAL_PATTERN, self.netlist, re.MULTILINE):
+                for m in findall(self.VOLTAGE_PATTERN).findall(self.netlist)}
+        for name, n1, n2, source_type in findall(
+                self.BEHAVIORAL_PATTERN).findall(self.netlist):
             sources = self.current if source_type.lower() == 'i' else self.voltage
             sources[name] = {'n1': n1, 'n2': n2}
 
-        param_definitions = re.findall(self.PARAM_PATTERN, self.netlist, re.MULTILINE)
+        param_definitions = findall(self.PARAM_PATTERN).findall(self.netlist)
         self._parse_param_values(param_definitions)
 
     def _parse_param_values(self, param_definitions):
@@ -402,6 +421,40 @@ class NetlistParser():
             pass
         return self._evaluate_param_expression(value_str)
 
+    def _parse_si_values(self, value_strs):
+        """Convert many SI literals or parameter expressions to base units.
+
+        Plain decimal literals are converted in a single vectorized pass. Any value
+        that is not a plain literal falls back to :meth:`_parse_si_value`, so SI
+        prefixes, braces, parameter names, and error messages behave identically to
+        converting each value individually.
+
+        Parameters
+        ----------
+        value_strs : sequence of str
+            Raw value strings in component order.
+
+        Returns
+        -------
+        list of float
+            Converted values in base units, aligned with ``value_strs``.
+
+        Raises
+        ------
+        ValueError
+            If any value is malformed, uses an unsupported SI prefix or expression
+            syntax, or references an unknown parameter.
+        """
+        if not value_strs:
+            return []
+
+        try:
+            # float() and numpy agree on plain decimal literals, so this fast path
+            # is bit-identical to converting each value separately.
+            return asarray(value_strs, dtype=float).tolist()
+        except (ValueError, TypeError):
+            return [self._parse_si_value(value_str) for value_str in value_strs]
+
     def _map_nodes(self):
         """Map component nodes and populate ``dipole_map``.
 
@@ -410,60 +463,88 @@ class NetlistParser():
         only.
         """
         # Create a mapping of node names to unique integers
-        self.node_map = {'0': 0}  # Ground node
-        self.dipole_map = {}
+        node_map = {'0': 0}  # Ground node
+        self.node_map = node_map
+        dipole_map = {}
+        self.dipole_map = dipole_map
         passive_list = [self.resistors, self.inductors, self.capacitors]
         source_list = [self.current, self.voltage]
         dipole_list = passive_list + source_list
         index_node=1
         for component in dipole_list:
-            for dipole in component:
-                n1 = component[dipole]['n1']
-                n2 = component[dipole]['n2']
-                if n1 not in self.node_map:
-                    self.node_map[n1] = index_node
+            for entry in component.values():
+                n1 = entry['n1']
+                n2 = entry['n2']
+                if n1 not in node_map:
+                    node_map[n1] = index_node
                     index_node += 1
-                if n2 not in self.node_map:
-                    self.node_map[n2] = index_node
+                if n2 not in node_map:
+                    node_map[n2] = index_node
                     index_node += 1
         self.max_index_node = index_node
         # Create a mapping of dipole names to node pairs
         for component in passive_list:
-            for dipole in component:
-                self.dipole_map[dipole] = {"nodes":[self.node_map[component[dipole]['n1']],
-                                          self.node_map[component[dipole]['n2']]],
-                                          "value":self._parse_si_value(component[dipole]['value'])}
+            if not component:
+                continue
+            entries = list(component.values())
+            values = self._parse_si_values([entry['value'] for entry in entries])
+            for dipole, entry, value in zip(component, entries, values):
+                dipole_map[dipole] = {"nodes":[node_map[entry['n1']],
+                                      node_map[entry['n2']]],
+                                      "value":value}
         for component in source_list:
-            for dipole in component:
-                self.dipole_map[dipole] = {"nodes":[self.node_map[component[dipole]['n1']],
-                                          self.node_map[component[dipole]['n2']]]}
+            for dipole, entry in component.items():
+                dipole_map[dipole] = {"nodes":[node_map[entry['n1']],
+                                      node_map[entry['n2']]]}
 
     def _map_couplings(self):
         """Map valid magnetic and resistive couplings to inductor coordinates."""
+        # A name-to-index dict replaces repeated O(n) list.index scans.
+        inductor_indices = {name: index
+                            for index, name in enumerate(self.inductors)}
+        dipole_map = self.dipole_map
+
         self.coupling_map = {}
-        list_l_name = list(self.inductors.keys())
-        for coupling in self.couplings:
-            L1 = self.couplings[coupling]['L1']
-            L2 = self.couplings[coupling]['L2']
-            if L1 not in self.inductors:
-                pass
-            elif L2 not in self.inductors:
-                pass
-            else:
-                M=self._parse_si_value(self.couplings[coupling]['k'])*sqrt(self.dipole_map[L1]['value']*self.dipole_map[L2]['value'])
-                self.coupling_map[coupling]={"L_coords":[list_l_name.index(L1), list_l_name.index(L2)],"value":M}
+        names, coords, k_strs, inductances = [], [], [], []
+        for coupling, entry in self.couplings.items():
+            L1 = entry['L1']
+            L2 = entry['L2']
+            index1 = inductor_indices.get(L1)
+            index2 = inductor_indices.get(L2)
+            if index1 is None or index2 is None:
+                continue
+            names.append(coupling)
+            coords.append([index1, index2])
+            k_strs.append(entry['k'])
+            inductances.append(
+                dipole_map[L1]['value'] * dipole_map[L2]['value'])
+
+        if names:
+            # One vectorized sqrt replaces a scalar NumPy call per coupling.
+            mutuals = asarray(self._parse_si_values(k_strs)) * sqrt(
+                asarray(inductances, dtype=float))
+            self.coupling_map = {
+                name: {"L_coords": coord, "value": value}
+                for name, coord, value in zip(names, coords, mutuals)}
 
         self.real_coupling_map = {}
-        for coupling in self.real_couplings:
-            L1 = self.real_couplings[coupling]['L1']
-            L2 = self.real_couplings[coupling]['L2']
-            if L1 not in self.inductors:
-                pass
-            elif L2 not in self.inductors:
-                pass
-            else:
-                Rij=self._parse_si_value(self.real_couplings[coupling]['k'])
-                self.real_coupling_map[coupling]={"L_coords":[list_l_name.index(L1), list_l_name.index(L2)],"value":Rij}
+        names, coords, k_strs = [], [], []
+        for coupling, entry in self.real_couplings.items():
+            L1 = entry['L1']
+            L2 = entry['L2']
+            index1 = inductor_indices.get(L1)
+            index2 = inductor_indices.get(L2)
+            if index1 is None or index2 is None:
+                continue
+            names.append(coupling)
+            coords.append([index1, index2])
+            k_strs.append(entry['k'])
+
+        if names:
+            self.real_coupling_map = {
+                name: {"L_coords": coord, "value": value}
+                for name, coord, value in zip(
+                    names, coords, self._parse_si_values(k_strs))}
 
     def _fill_array_circuit(self,indexes, values, dipole_list):
         """Append passive component coordinates and values to solver arrays.
@@ -482,11 +563,18 @@ class NetlistParser():
         tuple[numpy.ndarray, numpy.ndarray]
             Coordinate and value arrays with the requested components appended.
         """
-        for dipole in dipole_list:
-            nodes = self.dipole_map[dipole]["nodes"]
-            value = self.dipole_map[dipole]["value"]
-            indexes = concatenate((indexes, [[nodes[0]],[nodes[1]]]), axis=1)
-            values = concatenate((values, [value]), axis=0)
+        dipole_map = self.dipole_map
+        entries = [dipole_map[dipole] for dipole in dipole_list]
+        if not entries:
+            return indexes, values
+
+        # Accumulate first and concatenate once; concatenating per dipole would
+        # copy the whole array on every iteration.
+        new_indexes = [[entry["nodes"][0] for entry in entries],
+                       [entry["nodes"][1] for entry in entries]]
+        new_values = [entry["value"] for entry in entries]
+        indexes = concatenate((indexes, array(new_indexes, dtype=int)), axis=1)
+        values = concatenate((values, array(new_values, dtype=float)), axis=0)
         return indexes, values
 
     def _fill_array_coupling(self,indexes, values, coupling_map):
@@ -506,11 +594,15 @@ class NetlistParser():
         tuple[numpy.ndarray, numpy.ndarray]
             Coordinate and value arrays with the couplings appended.
         """
-        for coupling in coupling_map:
-            nodes = coupling_map[coupling]["L_coords"]
-            value = coupling_map[coupling]["value"]
-            indexes = concatenate((indexes, [[nodes[0]],[nodes[1]]]), axis=1)
-            values = concatenate((values, [value]), axis=0)
+        entries = list(coupling_map.values())
+        if not entries:
+            return indexes, values
+
+        new_indexes = [[entry["L_coords"][0] for entry in entries],
+                       [entry["L_coords"][1] for entry in entries]]
+        new_values = [entry["value"] for entry in entries]
+        indexes = concatenate((indexes, array(new_indexes, dtype=int)), axis=1)
+        values = concatenate((values, array(new_values, dtype=float)), axis=0)
         return indexes, values
 
     def generate_temporal_system(self):
