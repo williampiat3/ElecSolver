@@ -636,8 +636,8 @@ class TemporalSystemBuilder():
             return np.concatenate((solution.intensities_coil*sign[:offset_coil],
                 solution.intensities_res*sign[offset_coil:offset_coil+offset_res],
                 solution.intensities_capa*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                solution.intensities_sources*sign[offset_coil+offset_res+offset_capa:offset_coil+offset_res+offset_capa+self.source_count],
                 solution.potentials,
-                solution.intensities_sources*sign[offset_coil+offset_res+offset_capa:offset_coil+offset_res+offset_capa+self.source_count]
             ),axis=solution.potentials.ndim-1)
         else:
             return np.concatenate((solution.intensities_coil*sign[:offset_coil],
