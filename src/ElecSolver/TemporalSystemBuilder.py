@@ -633,16 +633,16 @@ class TemporalSystemBuilder():
         offset_res = self.res_data.shape[0]
         offset_capa = self.capa_data.shape[0]
         if self.source_count!=0:
-            return np.concatenate((solution.coil_intensities*sign[:offset_coil],
-                solution.res_intensities*sign[offset_coil:offset_coil+offset_res],
-                solution.capa_intensities*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
-                solution.voltages,
+            return np.concatenate((solution.intensities_coil*sign[:offset_coil],
+                solution.intensities_res*sign[offset_coil:offset_coil+offset_res],
+                solution.intensities_capa*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                solution.potentials,
                 solution.source_intensities*sign[offset_coil+offset_res+offset_capa:offset_coil+offset_res+offset_capa+self.source_count]
-            ),axis=solution.voltages.ndim-1)
+            ),axis=solution.potentials.ndim-1)
         else:
-            return np.concatenate((solution.coil_intensities*sign[:offset_coil],
-                solution.res_intensities*sign[offset_coil:offset_coil+offset_res],
-                solution.capa_intensities*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
-                solution.voltages
-            ),axis=solution.voltages.ndim-1)
+            return np.concatenate((solution.intensities_coil*sign[:offset_coil],
+                solution.intensities_res*sign[offset_coil:offset_coil+offset_res],
+                solution.intensities_capa*sign[offset_coil+offset_res:offset_coil+offset_res+offset_capa],
+                solution.potentials
+            ),axis=solution.potentials.ndim-1)
 
