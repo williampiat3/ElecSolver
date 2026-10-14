@@ -407,6 +407,36 @@ def test_lonely_nodes():
     currents_coil,currents_res,currents_capa,voltages,_ = elec_sys.build_intensity_and_voltage_from_vector(sol)
     print(voltages)
 
+def test_reverting_named_tuple():
+     ## Check that the system handler detects the isolated node and emits a warning.
+        ## Defining resistances
+        res_coords  = np.array([[0],[1]],dtype=int)
+        res_data = np.array([1],dtype=float)
+        ## Defining coils
+        coil_coords  = np.array([[0],[1]],dtype=int)
+        coil_data = np.array([0.1],dtype=float)
+        ## Defining capacities
+        capa_coords = np.array([[0],[1]],dtype=int)
+        capa_data = np.array([2],dtype=float)
+
+        ## Defining empty mutual here
+        mutual_coords=np.array([[],[]],dtype=int)
+        mutual_data = np.array([],dtype=float)
+
+
+        res_mutual_coords=np.array([[],[]],dtype=int)
+        res_mutual_data = np.array([],dtype=float)
+
+        elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
+        elec_sys.add_current_source(10,1,0)
+        elec_sys.set_ground(0)
+        elec_sys.build_system()
+        S_i,b = elec_sys.get_init_system()
+        sol = spsolve(S_i.tocsr(),b)
+        named_sol = elec_sys.build_intensity_and_voltage_from_vector(sol)
+        sol = elec_sys.build_vector_from_intensity_and_voltage(named_sol)
+
+
 if __name__ == "__main__":
     test_lonely_nodes()
     test_hydraulic()
