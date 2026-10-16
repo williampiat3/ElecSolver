@@ -127,20 +127,21 @@ def constant_block_diag(A,repetitions):
     data = np.tile(A.data,(repetitions,))
     return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
 
-def compute_graph_components(all_coords):
-    """Compute graph components from edge coordinates.
+def get_roots(all_coords, number_of_nodes):
+    """Find the root of each node in a graph.
 
     Parameters
     ----------
     all_coords : numpy.ndarray, shape (2, n_edges)
         Node indices for each graph edge.
+    number_of_nodes : int
+        Total number of nodes in the graph.
 
     Returns
     -------
-    list of numpy.ndarray
-        Node indices in each connected component.
+    roots : numpy.ndarray, shape (number_of_nodes,)
+        Root of each node, representing the connected component it belongs to.
     """
-    number_of_nodes = np.max(all_coords)+1
     number_of_edges = all_coords.shape[1]
     # Initialize the root of each node to itself.
     roots = np.arange(0,number_of_nodes,dtype=int)
@@ -157,7 +158,24 @@ def compute_graph_components(all_coords):
         roots = roots[roots]
         # Converged when no roots have changed in this iteration.
         converged = np.all(previous_roots==roots)
+    return roots
 
+def compute_graph_components(all_coords):
+    """Compute graph components from edge coordinates.
+    It is a simple wrapper around :func:`get_roots` to group nodes by their connected components.
+
+    Parameters
+    ----------
+    all_coords : numpy.ndarray, shape (2, n_edges)
+        Node indices for each graph edge.
+
+    Returns
+    -------
+    list of numpy.ndarray
+        Node indices in each connected component.
+    """
+    number_of_nodes = np.max(all_coords)+1
+    roots = get_roots(all_coords,number_of_nodes)
     return [np.arange(0,number_of_nodes,dtype=int)[roots==i] for i in np.unique(roots)]
 
 
