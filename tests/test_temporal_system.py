@@ -148,7 +148,7 @@ def test_one_shot_temporal():
     elec_sys.set_ground(0)
     elec_sys.build_system()
 
-    S_i,b = elec_sys.get_init_system(sparse_rhs=False)
+    S_i,b = elec_sys.get_robust_init_system(sparse_rhs=False)
     sol = spsolve(S_i.tocsr(),b)
     S1,S2,rhs = elec_sys.get_system(sparse_rhs=False)
     dt=0.08
@@ -436,13 +436,74 @@ def test_reverting_named_tuple():
         named_sol = elec_sys.build_intensity_and_voltage_from_vector(sol)
         sol = elec_sys.build_vector_from_intensity_and_voltage(named_sol)
 
+def test_robust_init_system():
+    ## Simple tetrahedron
+    res_coords  = np.array([[2,0],[3,1]],dtype=int)
+    res_data = np.array([1,1],dtype=float)
+    ## previous init system could not handle coils connecting a single node
+    coil_coords  = np.array([[1,3],[2,5]],dtype=int)
+    coil_data = np.array([1,4],dtype=float)
+    ## previous init system could not handle 2 capacitors connected to the same node
+    capa_coords = np.array([[0,0],[1,1]],dtype=int)
+    capa_data = np.array([1,3],dtype=float)
+
+    ## total impedance
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
+
+
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
+
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
+    elec_sys.add_voltage_source(10,0,3)
+    elec_sys.set_ground(0,4)
+    elec_sys.build_system()
+    S_i,b = elec_sys.get_robust_init_system()
+    sol = spsolve(S_i.tocsr(),b)
+
+
+def compare_robust_init_system():
+    ## Simple tetrahedron
+    res_coords  = np.array([[1],[2]],dtype=int)
+    res_data = np.array([1],dtype=float)
+    ## previous init system could not handle coils connecting a single node
+    coil_coords  = np.array([[],[]],dtype=int)
+    coil_data = np.array([],dtype=float)
+    ## previous init system could not handle 2 capacitors connected to the same node
+    capa_coords = np.array([[0],[1]],dtype=int)
+    capa_data = np.array([1],dtype=float)
+
+    ## total impedance
+    mutual_coords=np.array([[],[]],dtype=int)
+    mutual_data = np.array([],dtype=float)
+
+
+    res_mutual_coords=np.array([[],[]],dtype=int)
+    res_mutual_data = np.array([],dtype=float)
+
+    elec_sys = TemporalSystemBuilder(coil_coords,coil_data,res_coords,res_data,capa_coords,capa_data,mutual_coords,mutual_data,res_mutual_coords,res_mutual_data)
+    elec_sys.add_voltage_source(10,0,2)
+    elec_sys.set_ground(0)
+    elec_sys.build_system()
+    S_i_robust,b = elec_sys.get_robust_init_system()
+    sol = spsolve(S_i_robust.tocsr(),b)
+    S_i, rhs = elec_sys.get_init_system()
+    sol_init = spsolve(S_i.tocsr(),rhs)
+    S1,S2,b = elec_sys.get_system()
+    dt = 0.1
+    np.testing.assert_allclose(spsolve(S2+dt*S1,b*dt+S2@sol), spsolve(S2+dt*S1,b*dt+S2@sol_init))
+
 
 if __name__ == "__main__":
-    test_lonely_nodes()
-    test_hydraulic()
-    freq_simulation()
-    test_big_grid()
-    test_one_shot_temporal()
-    test_voltage()
-    test_temporal()
-    test_temporal2()
+    # test_lonely_nodes()
+    # test_hydraulic()
+    # freq_simulation()
+    # test_big_grid()
+    # test_one_shot_temporal()
+    # test_voltage()
+    # test_temporal()
+    # test_temporal2()
+    # test_reverting_named_tuple()
+    # test_robust_init_system()
+    compare_robust_init_system()

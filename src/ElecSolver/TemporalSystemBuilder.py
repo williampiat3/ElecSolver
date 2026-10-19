@@ -94,7 +94,7 @@ class TemporalSystemBuilder():
         # Number of currents.
         self.number_intensities = self.all_impedences.shape[0]
         # Keep the connected subgraphs.
-        self.list_of_subgraphs = [ list(sub) for sub in compute_graph_components(self.all_coords)]
+        self.list_of_subgraphs = [ list(sub) for sub in compute_graph_components(self.all_coords,self.size)]
         self.number_of_subsystems = len(self.list_of_subgraphs)
         # Reassign previous grounds when repeating the analysis.
         if self.analysed:
@@ -464,9 +464,14 @@ class TemporalSystemBuilder():
     def get_robust_init_system(self,sparse_rhs=True):
         """Fonction to return a more robust initial system and the right hand side
         in case the initial system is singular, this comes at the cost of additionnal
-        computational cost.
-        It merges the capacitors nodes
-        It removes the coils wires, the mutuals for the coils
+        computational cost. Compared to the standart init system the initial condition it provided
+        is at time t=0^{-} whereas the initial system assumes t=0^{+}.
+        Therefore when using the robust initial system one should be aware that it does not provide a sound initial condition at t=0^{+}.
+
+        Basically to make the it work it needs:
+            - to merge the capacitors nodes
+            - to remove the coils wires, the mutuals for the coils
+            - to make sure the merged nodes have same potential (really needed?)
         Returns
         -------
         sys : scipy.sparse.coo_matrix, shape (n, n)
@@ -481,25 +486,41 @@ class TemporalSystemBuilder():
         self.affect_potentials()
         ## First compute roots for the capacitance graph
         capa_roots = get_roots(self.capa_coords,self.size)
+        reduced_tension_coords = capa_roots[self.voltage_source_coords]
+        if any(reduced_tension_coords[0]==reduced_tension_coords[1]):
+            for i,(a,b) in enumerate(zip(reduced_tension_coords[0],reduced_tension_coords[1])):
+                if a==b:
+                    print(f"Voltage source {i} is bridged by capacitors.")
+            raise ValueError("System is not valid for threshold input.")
+
+
+        ## Second computing graph for res, capa + tension_sources
+        neg_induct_roots = get_roots(np.concatenate([self.res_coords,self.capa_coords,self.voltage_source_coords],axis=1),self.size)
+        reduced_current_coords = neg_induct_roots[self.current_source_coords]
+        if any(reduced_current_coords[0]!=reduced_current_coords[1]):
+            for i,(a,b) in enumerate(zip(reduced_current_coords[0],reduced_current_coords[1])):
+                if a!=b:
+                    print(f"Current source {i}'s input and output don't belong to the same subsystem or are split by an inductance.")
+            raise ValueError("System is not valid for threshold input.")
+
         ## Merging nodes that belong to the same capacitance graph
+        ## Resistances
         local_res_coords = capa_roots[self.res_coords]
         res_to_delete = local_res_coords[0]==local_res_coords[1]
         local_res_coords = local_res_coords[:,~res_to_delete]
         local_res_data = self.res_data[~res_to_delete]
+        # Need to keep track of deleted resistances for building back the augmented system later
         rescaler_res = np.cumsum(res_to_delete.astype(int))[~res_to_delete]
 
+        ## Current sources
         local_current_source_coords = capa_roots[self.current_source_coords]
         current_source_to_delete = local_current_source_coords[0]==local_current_source_coords[1]
         local_current_source_coords = self.current_source_coords[:,~current_source_to_delete]
         local_current_source_data = self.current_source_data[~current_source_to_delete]
 
+        ## Voltage sources
         local_voltage_source_coords = capa_roots[self.voltage_source_coords]
         local_voltage_source_data = self.voltage_source_data
-        forbidden_voltage_source = local_voltage_source_coords[0]==local_voltage_source_coords[1]
-
-        if any(forbidden_voltage_source):
-            raise ValueError("Voltage source forms a loop with capacitors, system is not valid.")
-
 
 
         builder = TemporalSystemBuilder(
@@ -520,23 +541,21 @@ class TemporalSystemBuilder():
         builder.current_source_data = local_current_source_data
         builder.voltage_source_coords = local_voltage_source_coords
         builder.voltage_source_data = local_voltage_source_data
-        builder.set_ground(capa_roots[self.affect_potentials])
+        builder.source_count=local_voltage_source_data.shape[0]
+        builder.set_ground(*capa_roots[self.affected_potentials])
         ## building the condensed system: merged capacitance, removed coils, removed short-cut resistances,
         ## removed short cut current sources
         builder.build_system()
-        S_init_condensed = builder.S_init
+        S_init_condensed = builder.S1
         rhs = builder.rhs
         ## expanding the condensed system to the full system
         rescaler_res = np.arange(self.coil_data.shape[0],self.coil_data.shape[0]+local_res_data.shape[0]) +rescaler_res
         rescaler_voltage_source = np.arange(self.coil_data.shape[0]+self.res_data.shape[0]+ self.capa_data.shape[0],self.coil_data.shape[0]+self.res_data.shape[0]+ self.capa_data.shape[0]+self.voltage_source_data.shape[0])
         rescaler_potentials = self.coil_data.shape[0]+self.res_data.shape[0]+self.capa_data.shape[0]+self.voltage_source_data.shape[0] + np.arange(0,self.size)
         j_rescaler = np.concatenate([rescaler_res, rescaler_voltage_source, rescaler_potentials])
-
         data,(i_s,j_s) = S_init_condensed
         data_rhs,(i_rhs,) = rhs
-
         j_s = j_rescaler[j_s]
-        i_rhs = j_rescaler[i_rhs]
         equation_index = i_s.max()+1
         ## cancel currents in coils, cancel currents in capacities and cancel in short cut resistances
         j_s_coils = np.arange(self.coil_data.shape[0])
@@ -550,22 +569,21 @@ class TemporalSystemBuilder():
         j_s_capa = (np.arange(self.capa_data.shape[0])+self.coil_data.shape[0]+self.res_data.shape[0])
         i_s_capa = equation_index +i_s_coils.shape[0]+ i_s_res.shape[0] + np.arange(j_s_capa.shape[0])
         data_capa = np.ones(j_s_capa.shape[0],dtype=float)
-        ## build equality of potentials with respect to their root in the capa tree
-        potentials_to_equalize_to_root = (capa_roots!=np.arange(self.size))
-        j_s_potentials_1 = self.offset_j + capa_roots[potentials_to_equalize_to_root]
-        j_s_potentials_2 = self.offset_j + np.arange(self.size)[potentials_to_equalize_to_root]
-        i_s_potentials_1 = equation_index + i_s_coils.shape[0] + i_s_res.shape[0] + i_s_capa.shape[0] + np.arange(j_s_potentials_1.shape[0])
-        i_s_potentials_2 = equation_index + i_s_coils.shape[0] + i_s_res.shape[0] + i_s_capa.shape[0] + np.arange(j_s_potentials_2.shape[0])
-        data_potentials_1 = np.ones(j_s_potentials_1.shape[0],dtype=float)
-        data_potentials_2 = -np.ones(j_s_potentials_2.shape[0],dtype=float)
-        j_s_potentials = np.concatenate([j_s_potentials_1, j_s_potentials_2])
-        i_s_potentials = np.concatenate([i_s_potentials_1, i_s_potentials_2])
-        data_potentials = np.concatenate([data_potentials_1, data_potentials_2])
+
+        affected_potentials_reduced = np.array(builder.affected_potentials,dtype=int)
+        mask = capa_roots[affected_potentials_reduced] != affected_potentials_reduced
+        i_s_potential = builder.size + builder.number_intensities - builder.source_count -builder.number_of_subsystems + np.arange(affected_potentials_reduced.shape[0])
+        j_s_potential = j_rescaler[builder.offset_j + capa_roots[affected_potentials_reduced]]
+        data_potential = -np.ones(affected_potentials_reduced.shape[0],dtype=float)
+
+        i_s_potential = i_s_potential[mask]
+        j_s_potential = j_s_potential[mask]
+        data_potential = data_potential[mask]
 
         ## Add all equations
-        j_s = np.concatenate([j_s,j_s_coils, j_s_res, j_s_capa, j_s_potentials])
-        i_s = np.concatenate([i_s,i_s_coils, i_s_res, i_s_capa, i_s_potentials])
-        data = np.concatenate([data,data_coils, data_res, data_capa, data_potentials])
+        j_s = np.concatenate([j_s,j_s_coils, j_s_res, j_s_capa, j_s_potential])
+        i_s = np.concatenate([i_s,i_s_coils, i_s_res, i_s_capa, i_s_potential])
+        data = np.concatenate([data,data_coils, data_res, data_capa, data_potential])
 
         j_s = j_s.astype(int)
         i_s = i_s.astype(int)
@@ -579,15 +597,8 @@ class TemporalSystemBuilder():
             rhs = np.zeros(size)
             (data_rhs,(i_rhs,)) = self.rhs
             np.add.at(rhs, i_rhs, data_rhs)
+        ## rhs here is only for the init system do not mix up with the main system's rhs
         return sys,rhs
-
-
-
-
-
-        ## If tensions sources are within a loop of capacities then the system is not valid
-        ## If current sources are within a loop of coils then the system is not valid
-        ## need to rebuild the system
 
 
     def get_system(self,sparse_rhs=True):

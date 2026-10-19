@@ -16,7 +16,7 @@ nav = [
   "solver-suggestions.md",
   "extra-uses-hydraulic-or-thermal-system-modeling.md",
   "netlist-import-feature.md",
-  "known-issues.md",
+  "experimental-features.md",
 ]
 extra_javascript = [
     "javascripts/mathjax.js",
