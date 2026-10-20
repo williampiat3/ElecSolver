@@ -506,4 +506,4 @@ if __name__ == "__main__":
     test_temporal2()
     test_reverting_named_tuple()
     test_robust_init_system()
-    compare_robust_init_system()
+    test_compare_robust_init_system()
