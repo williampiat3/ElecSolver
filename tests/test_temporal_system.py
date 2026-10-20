@@ -463,7 +463,7 @@ def test_robust_init_system():
     sol = spsolve(S_i.tocsr(),b)
 
 
-def compare_robust_init_system():
+def test_compare_robust_init_system():
     ## Simple tetrahedron
     res_coords  = np.array([[1],[2]],dtype=int)
     res_data = np.array([1],dtype=float)
