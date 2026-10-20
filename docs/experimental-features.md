@@ -14,6 +14,7 @@ In these cases, the init system is not defined and the system can only answer to
 When these conditions are not met the system can answer to a threshold input.
 
 When it is working the init system provides the solution at time $t=0+$. However, this feature does not always work:
+
 - It fails when having two capacitances in parallel in the system
 - It fails when having an inductance that is connected to a dead end in the circuit.
 - It fails when there are multiple inductances connected in series
