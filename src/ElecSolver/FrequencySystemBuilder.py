@@ -53,7 +53,7 @@ class FrequencySystemBuilder():
         # Number of currents.
         self.number_intensities = self.all_impedences.shape[0]
         # Keep the connected subgraphs.
-        self.list_of_subgraphs = [ sub.tolist() for sub in compute_graph_components(self.all_coords)]
+        self.list_of_subgraphs = [ sub.tolist() for sub in compute_graph_components(self.all_coords,self.size)]
         self.number_of_subsystems = len(self.list_of_subgraphs)
         # Reassign previous grounds when repeating the analysis.
         if self.analysed:

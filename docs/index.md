@@ -76,3 +76,4 @@ Then presents extra features:
 - [Solver suggestions](solver-suggestions.md)
 - [Extra uses: Hydraulic or Thermal system modeling](extra-uses-hydraulic-or-thermal-system-modeling.md)
 - [Netlist import feature](netlist-import-feature.md)
+- [Experimental features](experimental-features.md)

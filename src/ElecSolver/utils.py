@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 from collections import namedtuple
 
 SolutionFrequency = namedtuple("ComplexSolution",["intensities","potentials","intensities_sources"])
@@ -127,37 +128,50 @@ def constant_block_diag(A,repetitions):
     data = np.tile(A.data,(repetitions,))
     return coo_matrix((data,(rows,cols)),shape=(repetitions*size,repetitions*size))
 
-def compute_graph_components(all_coords):
-    """Compute graph components from edge coordinates.
+def get_roots(all_coords, number_of_nodes=None):
+    """Find the root of each node in a graph.
 
     Parameters
     ----------
     all_coords : numpy.ndarray, shape (2, n_edges)
         Node indices for each graph edge.
+    number_of_nodes : int, optional
+        Total number of nodes in the graph. Defaults to ``max(all_coords) + 1``.
+
+    Returns
+    -------
+    roots : numpy.ndarray, shape (number_of_nodes,)
+        Root of each node: the lowest node index of its connected component.
+    """
+    if number_of_nodes is None:
+        number_of_nodes = int(np.max(all_coords))+1
+    number_of_edges = all_coords.shape[1]
+    graph = coo_matrix((np.ones(number_of_edges,dtype=np.int8),(all_coords[0],all_coords[1])),
+                       shape=(number_of_nodes,number_of_nodes))
+    _, labels = connected_components(graph,directed=False)
+    # Labels are assigned in node order, so the first occurrence is the lowest index.
+    _, first = np.unique(labels,return_index=True)
+    return first[labels]
+
+def compute_graph_components(all_coords,number_of_nodes=None):
+    """Compute graph components from edge coordinates.
+    It is a simple wrapper around :func:`get_roots` to group nodes by their connected components.
+
+    Parameters
+    ----------
+    all_coords : numpy.ndarray, shape (2, n_edges)
+        Node indices for each graph edge.
+    number_of_nodes : int, optional
+        Total number of nodes in the graph. Defaults to ``max(all_coords) + 1``.
 
     Returns
     -------
     list of numpy.ndarray
         Node indices in each connected component.
     """
-    number_of_nodes = np.max(all_coords)+1
-    number_of_edges = all_coords.shape[1]
-    # Initialize the root of each node to itself.
-    roots = np.arange(0,number_of_nodes,dtype=int)
-    # Make each point refer to its lowest-index neighbor.
-    for i in range(number_of_edges):
-        min_value = min(all_coords[0,i],all_coords[1,i])
-        roots[all_coords[0,i]] = min(min_value,roots[all_coords[0,i]])
-        roots[all_coords[1,i]] = min(min_value,roots[all_coords[1,i]])
-
-    converged = False
-    # Iteratively update each node to point to the root of its component.
-    while not converged:
-        previous_roots = roots.copy()
-        roots = roots[roots]
-        # Converged when no roots have changed in this iteration.
-        converged = np.all(previous_roots==roots)
-
+    if number_of_nodes is None:
+        number_of_nodes = int(np.max(all_coords))+1
+    roots = get_roots(all_coords,number_of_nodes)
     return [np.arange(0,number_of_nodes,dtype=int)[roots==i] for i in np.unique(roots)]
 
 
