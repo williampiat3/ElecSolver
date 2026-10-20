@@ -1,15 +1,13 @@
 # Experimental Features
 
-## Robust init system
+## About the init system
 
 ElecSolver provides an init system feature that allows for users to obtain the inital condition of the electric system right when the simulation starts.
 
-This feature is essential when assessing the capacity of the system's reponse to a threshold input signal.
-
-Some circuits can't answer to a theshold input:
+This feature is essential when assessing the capacity of the system's reponse to a threshold input signal. But some configurations make the circuit not able to answer a threshold input:
 
 - A voltage source with capacitance connected to its terminals.
-- A current source whose terminals need inductances to be in a connected graph
+- Inductances that, if disconnected from the circuit, split the current source terminals from one another
 
 In these cases, the init system is not defined and the system can only answer to differentiable inputs.
 
@@ -18,12 +16,17 @@ When these conditions are not met the system can answer to a threshold input.
 When it is working the init system provides the solution at time $t=0+$. However, this feature does not always work:
 - It fails when having two capacitances in parallel in the system
 - It fails when having an inductance that is connected to a dead end in the circuit.
+- It fails when there are multiple inductances connected in series
 
-To circonvent these limitation we provided a workaround by providing a robust init system that can handle these special cases more effectively. Should your init system fail under the standard conditions, the robust init system can be used as an alternative.
+To circumvent these limitations we provided a workaround by providing a robust init system that can handle these special cases more effectively. Should your init system fail under the standard conditions, the robust init system can be used as an alternative.
 
-The robust init system does not provide a physical solution at $t=0+$ in the same sense as the standard init system. Instead, it offers a mathematically consistent approximation that allows the simulation to proceed even in cases where the standard init system would fail.
+## About the robust init system
+
+The robust init system does not provide a physical solution at $t=0+$ in the same sense as the standard init system. Instead, it offers a mathematically consistent initial condition that allows the simulation to run even in cases where the standard init system would fail. It relies on the fact that currents in capacitors and potentials in terminals of lonely inductances are algebraic unknowns.
 
 It is important to note that while the robust init system increases the range of circuits that can be simulated, a user should not rely on its solution as a substitute for the physically accurate initial conditions provided by the standard init system.
+
+In a few words **do not take the result of the robust init system in your simulation as the first time step solution**. Try to use the standard init system whenever possible which is more physically sound.
 
 We are still trying to unify both solutions into a single coherent framework that can handle a wider range of initial conditions while maintaining physical accuracy.
 
