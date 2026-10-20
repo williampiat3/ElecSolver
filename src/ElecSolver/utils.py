@@ -169,6 +169,8 @@ def compute_graph_components(all_coords,number_of_nodes=None):
     list of numpy.ndarray
         Node indices in each connected component.
     """
+    if number_of_nodes is None:
+        number_of_nodes = int(np.max(all_coords))+1
     roots = get_roots(all_coords,number_of_nodes)
     return [np.arange(0,number_of_nodes,dtype=int)[roots==i] for i in np.unique(roots)]
 
